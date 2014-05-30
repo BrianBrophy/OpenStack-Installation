@@ -56,7 +56,7 @@ osicommon.install_glance(glanceDatabasePassword, managementNetworkIP, mysqlPassw
 
 # Install Neutron
 neutronDatabasePassword = osicommon.get_config_ini(iniPath, 'neutron', 'database_user_password')
-osicommon.install_neutron(neutronDatabasePassword, managementNetworkIP, mysqlPassword, managementNetworkIP)
+osicommon.install_neutron_on_control_node(neutronDatabasePassword, managementNetworkIP, mysqlPassword, managementNetworkIP)
 
 # Install Nova
 novaDatabasePassword = osicommon.get_config_ini(iniPath, 'nova', 'database_user_password')

@@ -67,6 +67,15 @@ def get_network_address(interfaceName):
 
 
 #######################################################################
+def install_bridgeutils():
+  print ''
+  log('Installing bridge-utils')
+  run_command("apt-get install -y bridge-utils" , True)
+  log('Completed bridge-utils')
+#######################################################################
+
+
+#######################################################################
 def install_cinder(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, apiIP):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure cinder, no database user password specified")
@@ -359,7 +368,7 @@ def install_mysql(rootPassword):
 
 
 #######################################################################
-def install_neutron(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP):
+def install_neutron_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure neutron, no database user password specified")
   if not mySQLIP or len(str(mySQLIP)) == 0:
@@ -409,6 +418,58 @@ def install_neutron(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP)
   set_config_ini(neutronPluginConf, 'ml2_type_vxlan', 'vni_ranges', '500:999')
   set_config_ini(neutronPluginConf, 'securitygroup', 'firewall_driver', 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver')
   run_command("service neutron-server restart", True)
+  log('Completed Neutron')
+#######################################################################
+
+
+#######################################################################
+def install_neutron_on_network_node(databaseUserPassword, mySQLIP,controlNodeIP):
+  if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
+    raise Exception("Unable to install/configure neutron, no database user password specified")
+  if not mySQLIP or len(str(mySQLIP)) == 0:
+    raise Exception("Unable to install/configure neutron, no MySQL IP specified")
+  if not controlNodeIP or len(str(controlNodeIP)) == 0:
+    raise Exception("Unable to install/configure neutron, no control node IP specified")
+  print ''
+  log('Installing Neutron')
+  run_command("apt-get install -y openvswitch-switch openvswitch-datapath-dkms" , True)
+  run_command("ovs-vsctl --may-exist add-br br-int" , True)
+  run_command("ovs-vsctl --may-exist add-br br-eth2" , True)
+  run_command("ovs-vsctl --may-exist add-port br-eth2 eth2" , True)
+  run_command("ovs-vsctl --may-exist add-br br-ex" , True)
+  run_command("apt-get install -y neutron-plugin-openvswitch-agent neutron-dhcp-agent neutron-l3-agent neutron-metadata-agent" , True)
+  log('Configuring Neutron')
+  neutronConf = '/etc/neutron/neutron.conf'
+  set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'neutron.plugins.openvswitch.ovs_neutron_plugin.OVSNeutronPluginV2')
+  set_config_ini(neutronConf, 'DEFAULT', 'verbose', 'False')
+  set_config_ini(neutronConf, 'DEFAULT', 'debug', 'False')
+  set_config_ini(neutronConf, 'DEFAULT', 'auth_strategy', 'keystone')
+  set_config_ini(neutronConf, 'DEFAULT', 'rabbit_host', controlNodeIP)
+  set_config_ini(neutronConf, 'DEFAULT', 'rabbit_port', '5672')
+  set_config_ini(neutronConf, 'DEFAULT', 'allow_overlapping_ips', 'False')
+  set_config_ini(neutronConf, 'DEFAULT', 'root_helper', 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf')
+  neutronPasteConf = '/etc/neutron/api-paste.ini'
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_host', controlNodeIP)
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_port', '35357')
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_protocol', 'http')
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_tenant_name', 'service')
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_user', 'neutron')
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_password', 'neutron')
+  neutronPluginConf = '/etc/neutron/plugins/ml2/ml2_conf.ini'
+  set_config_ini(neutronPluginConf, 'database', 'sql_connection', "mysql://neutron:%s@%s/neutron" %(databaseUserPassword,mySQLIP))
+  set_config_ini(neutronPluginConf, 'OVS', 'bridge_mappings', 'physnet1:br-eth2')
+  set_config_ini(neutronPluginConf, 'OVS', 'tenant_network_type', 'vlan')
+  set_config_ini(neutronPluginConf, 'OVS', 'network_vlan_ranges', 'physnet1:1000:2999')
+  set_config_ini(neutronPluginConf, 'OVS', 'integration_bridge', 'br-int')
+  set_config_ini(neutronPluginConf, 'securitygroup', 'firewall_driver', 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver')
+  neutronDhcpAgentConf = '/etc/neutron/dhcp_agent.ini'
+  set_config_ini(neutronDhcpAgentConf, 'DEFAULT', 'interface_driver', 'neutron.agent.linux.interface.OVSInterfaceDriver')
+  set_config_ini(neutronDhcpAgentConf, 'DEFAULT', 'dhcp_driver', 'neutron.agent.linux.dhcp.Dnsmasq')
+  neutronL3AgentConf = '/etc/neutron/l3_agent.ini'
+  set_config_ini(neutronL3AgentConf, 'DEFAULT', 'interface_driver', 'neutron.agent.linux.interface.OVSInterfaceDriver')
+  run_command("service neutron-plugin-openvswitch-agent restart", True)
+  run_command("service neutron-dhcp-agent restart", True)
+  run_command("service neutron-l3-agent restart", True)
   log('Completed Neutron')
 #######################################################################
 
@@ -512,6 +573,15 @@ def install_rabbitmq():
   run_command("service rabbitmq-server restart", True)
   time.sleep(10)
   log('Completed RabbitMQ')
+#######################################################################
+
+
+#######################################################################
+def install_vlan():
+  print ''
+  log('Installing vlan')
+  run_command("apt-get install -y vlan" , True)
+  log('Completed vlan')
 #######################################################################
 
 
