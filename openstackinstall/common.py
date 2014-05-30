@@ -172,7 +172,6 @@ def install_glance(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP):
   run_command("service glance-registry restart", True)
   time.sleep(10)
   run_command("glance-manage db_sync", True)
-  run_command("glance image-list")
   log('Completed Glance')
 #######################################################################
 
@@ -219,110 +218,119 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   # Configure users/endpoints/etc
   os.environ['SERVICE_TOKEN'] = 'ADMINTOKEN'
   os.environ['SERVICE_ENDPOINT'] = 'http://%s:35357/v2.0'% controlNodeIP
-  os.environ['no_proxy'] = "localhost,127.0.0.1,%s" % controlNodeIP
+  os.environ['no_proxy'] = "localhost,127.0.0.1,%s,%s" % (controlNodeIP,apiIP)
 
-  admin_tenant = run_command("keystone tenant-list | grep admin | awk '{print $2}'")
-  if not admin_tenant or not len(str(admin_tenant)) > 0:
-    admin_tenant = run_command("keystone tenant-create --name admin --description 'Admin Tenant' --enabled true |grep ' id '|awk '{print $4}'")
-
-  admin_user = run_command("keystone user-list | grep admin | awk '{print $2}'")
-  if not admin_user or not len(str(admin_user)) > 0:
-    admin_user = run_command("keystone user-create --tenant_id %s --name admin --pass secret --enabled true|grep ' id '|awk '{print $4}'" % admin_tenant)
-
-  admin_role = run_command("keystone role-list| grep admin | awk '{print $2}'")
-  if not admin_role or not len(str(admin_user)) > 0:
-    admin_role = run_command("keystone role-create --name admin|grep ' id '|awk '{print $4}'")
-
-  admin_role_mapped = run_command("keystone user-role-list --user_id %s --tenant_id %s | grep %s" % (admin_user,admin_tenant,admin_role))
-  if not admin_role_mapped or not len(str(admin_role_mapped)) > 0:
-    run_command("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (admin_user, admin_tenant, admin_role))
-
-  service_tenant = run_command("keystone tenant-list | grep service | awk '{print $2}'")
-  if not service_tenant or not len(str(service_tenant)) > 0:
-    service_tenant = run_command("keystone tenant-create --name service --description 'Service Tenant' --enabled true |grep ' id '|awk '{print $4}'")
-
-  keystone_service = run_command("keystone service-list| grep keystone | awk '{print $2}'")
-  if not keystone_service or not len(str(keystone_service)) > 0:
-    keystone_service = run_command("keystone service-create --name=keystone --type=identity --description='Keystone Identity Service'|grep ' id '|awk '{print $4}'")
-
-  keystone_endpoint = run_command("keystone endpoint-list | grep %s" % keystone_service)
-  if keystone_endpoint and len(str(keystone_endpoint)) > 0:
-    run_command("keystone endpoint-delete %s" % keystone_service)
-  run_command("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:5000/v2.0 --internalurl=http://%s:5000/v2.0 --adminurl=http://%s:35357/v2.0" % (keystone_service,apiIP,controlNodeIP,controlNodeIP))
-
-  glance_user = run_command("keystone user-list | grep glance | awk '{print $2}'")
-  if not glance_user or not len(str(glance_user)) > 0:
-    glance_user = run_command("keystone user-create --tenant_id %s --name glance --pass glance --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
-
-  glance_role_mapped = run_command("keystone user-role-list --user_id %s --tenant_id %s | grep %s" % (glance_user, service_tenant, admin_role))
-  if not glance_role_mapped or not len(str(glance_role_mapped)) > 0:
-    run_command("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (glance_user, service_tenant, admin_role))
-
-  glance_service = run_command("keystone service-list| grep glance | awk '{print $2}'")
-  if not glance_service or not len(str(glance_service)) > 0:
-    glance_service = run_command("keystone service-create --name=glance --type=image --description='Glance Image Service'|grep ' id '|awk '{print $4}'")
-
-  glance_endpoint = run_command("keystone endpoint-list | grep %s" % glance_service)
-  if glance_endpoint and len(str(glance_endpoint)) > 0:
-    run_command("keystone endpoint-delete %s" % glance_service)
-  run_command("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:9292/v2 --internalurl=http://%s:9292/v2 --adminurl=http://%s:9292/v2" % (glance_service,apiIP,controlNodeIP,controlNodeIP))
-
-  nova_user = run_command("keystone user-list | grep nova | awk '{print $2}'")
-  if not nova_user or not len(str(nova_user)) > 0:
-    nova_user = run_command("keystone user-create --tenant_id %s --name nova --pass nova --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
-
-  nova_role_mapped = run_command("keystone user-role-list --user_id %s --tenant_id %s | grep %s" % (nova_user, service_tenant, admin_role))
-  if not nova_role_mapped or not len(str(nova_role_mapped)) > 0:
-    run_command("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (nova_user, service_tenant, admin_role))
-
-  nova_service = run_command("keystone service-list| grep nova | awk '{print $2}'")
-  if not nova_service or not len(str(nova_service)) > 0:
-    nova_service = run_command("keystone service-create --name=nova --type=compute --description='Nova Compute Service'|grep ' id '|awk '{print $4}'")
-
-  nova_endpoint = run_command("keystone endpoint-list | grep %s" % nova_service)
-  if nova_endpoint and len(str(nova_endpoint)) > 0:
-    run_command("keystone endpoint-delete %s" % nova_service)
-  run_command("keystone endpoint-create --region region --service_id=%s --publicurl='http://%s:8774/v2/$(tenant_id)s' --internalurl='http://%s:8774/v2/$(tenant_id)s' --adminurl='http://%s:8774/v2/$(tenant_id)s'" % (nova_service,apiIP,controlNodeIP,controlNodeIP))
-
-  neutron_user = run_command("keystone user-list | grep neutron | awk '{print $2}'")
-  if not neutron_user or not len(str(neutron_user)) > 0:
-    neutron_user = run_command("keystone user-create --tenant_id %s --name neutron --pass neutron --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
-
-  neutron_role_mapped = run_command("keystone user-role-list --user_id %s --tenant_id %s | grep %s" % (neutron_user, service_tenant, admin_role))
-  if not neutron_role_mapped or not len(str(neutron_role_mapped)) > 0:
-    run_command("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (neutron_user, service_tenant, admin_role))
-
-  neutron_service = run_command("keystone service-list| grep neutron | awk '{print $2}'")
-  if not neutron_service or not len(str(neutron_service)) > 0:
-    neutron_service = run_command("keystone service-create --name=neutron --type=network  --description='Neutron Networking Service'|grep ' id '|awk '{print $4}'")
-
-  neutron_endpoint = run_command("keystone endpoint-list | grep %s" % neutron_service)
-  if neutron_endpoint and len(str(neutron_endpoint)) > 0:
-    run_command("keystone endpoint-delete %s" % neutron_service)
-  run_command("keystone endpoint-create --region region --service_id=%s --publicurl=http://%s:9696/ --internalurl=http://%s:9696/ --adminurl=http://%s:9696/" % (neutron_service,apiIP,controlNodeIP,controlNodeIP))
-
-  cinder_user = run_command("keystone user-list| grep cinder | awk '{print $2}'")
-  if not cinder_user or not len(str(cinder_user)) > 0:
-    cinder_user = run_command("keystone user-create --tenant_id %s --name cinder --pass cinder --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
-
-  cinder_role_mapped = run_command("keystone user-role-list --user_id %s --tenant_id %s | grep %s" % (cinder_user, service_tenant, admin_role))
-  if not cinder_role_mapped or not len(str(cinder_role_mapped)) > 0:
-    run_command("keystone user-role-add --user_id %s --tenant_id %s --role_id %s" % (cinder_user, service_tenant, admin_role))
-
-  cinder_service = run_command("keystone service-list| grep cinder | awk '{print $2}'")
-  if not cinder_service  or not len(str(cinder_service)) > 0:
-    cinder_service = run_command("keystone service-create --name=cinder --type=volume --description='Cinder Volume Service'|grep ' id '|awk '{print $4}'")
-
-  cinder_endpoint = run_command("keystone endpoint-list | grep %s" % cinder_service)
-  if cinder_endpoint and len(str(cinder_endpoint)) > 0:
-    run_command("keystone endpoint-delete %s" % cinder_service)
-  run_command("keystone endpoint-create --region region --service_id=%s --publicurl 'http://%s:8776/v1/$(tenant_id)s' --internalurl='http://%s:8776/v1/$(tenant_id)s' --adminurl='http://%s:8776/v1/$(tenant_id)s'" % (cinder_service,apiIP,controlNodeIP,controlNodeIP))
-
+  # Little bit of dancing to handle if the admin user already exists or maybe does not yet
   adminrc = '/root/openstack-admin.rc'
+  adminAuthArg = ''
+  adminUserExists = os.path.exists(adminrc) and os.path.isfile(adminrc)
+  if adminUserExists:
+    adminAuthArg = " --os-username admin --os-password secret --os-auth-url http://%s:5000/v2.0 " %apiIP
+
+  admin_tenant = run_command("keystone " + adminAuthArg + " tenant-list | grep admin | awk '{print $2}'")
+  if not admin_tenant or not len(str(admin_tenant)) > 0:
+    admin_tenant = run_command("keystone " + adminAuthArg + " tenant-create --name admin --description 'Admin Tenant' --enabled true |grep ' id '|awk '{print $4}'")
+
+  admin_user = run_command("keystone " + adminAuthArg + " user-list | grep admin | awk '{print $2}'")
+  if not admin_user or not len(str(admin_user)) > 0:
+    admin_user = run_command("keystone " + adminAuthArg + " user-create --tenant_id %s --name admin --pass secret --enabled true|grep ' id '|awk '{print $4}'" % admin_tenant)
+
+  # Now that the admin user definitely exists, setup auth for remaining commands
   run_command("echo 'export OS_USERNAME=admin' >%s" %adminrc)
   run_command("echo 'export OS_PASSWORD=secret' >>%s" %adminrc)
   run_command("echo 'export OS_TENANT_NAME=admin' >>%s" %adminrc)
   run_command("echo 'export OS_AUTH_URL=http://%s:5000/v2.0' >>%s" % (apiIP,adminrc))
+  adminAuthArg = " --os-username admin --os-password secret --os-auth-url http://%s:5000/v2.0 " %apiIP
+
+  admin_role = run_command("keystone " + adminAuthArg + " role-list| grep admin | awk '{print $2}'")
+  if not admin_role or not len(str(admin_user)) > 0:
+    admin_role = run_command("keystone " + adminAuthArg + " role-create --name admin|grep ' id '|awk '{print $4}'")
+
+  admin_role_mapped = run_command("keystone " + adminAuthArg + " user-role-list --user_id %s --tenant_id %s | grep %s | awk '{print $2}'" % (admin_user,admin_tenant,admin_role))
+  if not admin_role_mapped or not len(str(admin_role_mapped)) > 0:
+    run_command("keystone " + adminAuthArg + " user-role-add --user_id %s --tenant_id %s --role_id %s" % (admin_user, admin_tenant, admin_role))
+
+  service_tenant = run_command("keystone " + adminAuthArg + " tenant-list | grep service | awk '{print $2}'")
+  if not service_tenant or not len(str(service_tenant)) > 0:
+    service_tenant = run_command("keystone " + adminAuthArg + " tenant-create --name service --description 'Service Tenant' --enabled true |grep ' id '|awk '{print $4}'")
+
+  keystone_service = run_command("keystone " + adminAuthArg + " service-list| grep keystone | awk '{print $2}'")
+  if not keystone_service or not len(str(keystone_service)) > 0:
+    keystone_service = run_command("keystone " + adminAuthArg + " service-create --name=keystone --type=identity --description='Keystone Identity Service'|grep ' id '|awk '{print $4}'")
+
+  keystone_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % keystone_service)
+  if keystone_endpoint and len(str(keystone_endpoint)) > 0:
+    run_command("keystone " + adminAuthArg + " endpoint-delete %s" % keystone_service)
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:5000/v2.0 --internalurl=http://%s:5000/v2.0 --adminurl=http://%s:35357/v2.0" % (keystone_service,apiIP,controlNodeIP,controlNodeIP))
+
+  glance_user = run_command("keystone " + adminAuthArg + " user-list | grep glance | awk '{print $2}'")
+  if not glance_user or not len(str(glance_user)) > 0:
+    glance_user = run_command("keystone " + adminAuthArg + " user-create --tenant_id %s --name glance --pass glance --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
+
+  glance_role_mapped = run_command("keystone " + adminAuthArg + " user-role-list --user_id %s --tenant_id %s | grep %s | awk '{print $2}'" % (glance_user, service_tenant, admin_role))
+  if not glance_role_mapped or not len(str(glance_role_mapped)) > 0:
+    run_command("keystone " + adminAuthArg + " user-role-add --user_id %s --tenant_id %s --role_id %s" % (glance_user, service_tenant, admin_role))
+
+  glance_service = run_command("keystone " + adminAuthArg + " service-list| grep glance | awk '{print $2}'")
+  if not glance_service or not len(str(glance_service)) > 0:
+    glance_service = run_command("keystone " + adminAuthArg + " service-create --name=glance --type=image --description='Glance Image Service'|grep ' id '|awk '{print $4}'")
+
+  glance_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % glance_service)
+  if glance_endpoint and len(str(glance_endpoint)) > 0:
+    run_command("keystone " + adminAuthArg + " endpoint-delete %s" % glance_service)
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:9292/v2 --internalurl=http://%s:9292/v2 --adminurl=http://%s:9292/v2" % (glance_service,apiIP,controlNodeIP,controlNodeIP))
+
+  nova_user = run_command("keystone " + adminAuthArg + " user-list | grep nova | awk '{print $2}'")
+  if not nova_user or not len(str(nova_user)) > 0:
+    nova_user = run_command("keystone " + adminAuthArg + " user-create --tenant_id %s --name nova --pass nova --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
+
+  nova_role_mapped = run_command("keystone " + adminAuthArg + " user-role-list --user_id %s --tenant_id %s | grep %s | awk '{print $2}'" % (nova_user, service_tenant, admin_role))
+  if not nova_role_mapped or not len(str(nova_role_mapped)) > 0:
+    run_command("keystone " + adminAuthArg + " user-role-add --user_id %s --tenant_id %s --role_id %s" % (nova_user, service_tenant, admin_role))
+
+  nova_service = run_command("keystone " + adminAuthArg + " service-list| grep nova | awk '{print $2}'")
+  if not nova_service or not len(str(nova_service)) > 0:
+    nova_service = run_command("keystone " + adminAuthArg + " service-create --name=nova --type=compute --description='Nova Compute Service'|grep ' id '|awk '{print $4}'")
+
+  nova_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % nova_service)
+  if nova_endpoint and len(str(nova_endpoint)) > 0:
+    run_command("keystone " + adminAuthArg + " endpoint-delete %s" % nova_service)
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl='http://%s:8774/v2/$(tenant_id)s' --internalurl='http://%s:8774/v2/$(tenant_id)s' --adminurl='http://%s:8774/v2/$(tenant_id)s'" % (nova_service,apiIP,controlNodeIP,controlNodeIP))
+
+  neutron_user = run_command("keystone " + adminAuthArg + " user-list | grep neutron | awk '{print $2}'")
+  if not neutron_user or not len(str(neutron_user)) > 0:
+    neutron_user = run_command("keystone " + adminAuthArg + " user-create --tenant_id %s --name neutron --pass neutron --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
+
+  neutron_role_mapped = run_command("keystone " + adminAuthArg + " user-role-list --user_id %s --tenant_id %s | grep %s | awk '{print $2}'" % (neutron_user, service_tenant, admin_role))
+  if not neutron_role_mapped or not len(str(neutron_role_mapped)) > 0:
+    run_command("keystone " + adminAuthArg + " user-role-add --user_id %s --tenant_id %s --role_id %s" % (neutron_user, service_tenant, admin_role))
+
+  neutron_service = run_command("keystone " + adminAuthArg + " service-list| grep neutron | awk '{print $2}'")
+  if not neutron_service or not len(str(neutron_service)) > 0:
+    neutron_service = run_command("keystone " + adminAuthArg + " service-create --name=neutron --type=network  --description='Neutron Networking Service'|grep ' id '|awk '{print $4}'")
+
+  neutron_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % neutron_service)
+  if neutron_endpoint and len(str(neutron_endpoint)) > 0:
+    run_command("keystone " + adminAuthArg + " endpoint-delete %s" % neutron_service)
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:9696/ --internalurl=http://%s:9696/ --adminurl=http://%s:9696/" % (neutron_service,apiIP,controlNodeIP,controlNodeIP))
+
+  cinder_user = run_command("keystone " + adminAuthArg + " user-list| grep cinder | awk '{print $2}'")
+  if not cinder_user or not len(str(cinder_user)) > 0:
+    cinder_user = run_command("keystone " + adminAuthArg + " user-create --tenant_id %s --name cinder --pass cinder --enabled true|grep ' id '|awk '{print $4}'" % service_tenant)
+
+  cinder_role_mapped = run_command("keystone " + adminAuthArg + " user-role-list --user_id %s --tenant_id %s | grep %s | awk '{print $2}'" % (cinder_user, service_tenant, admin_role))
+  if not cinder_role_mapped or not len(str(cinder_role_mapped)) > 0:
+    run_command("keystone " + adminAuthArg + " user-role-add --user_id %s --tenant_id %s --role_id %s" % (cinder_user, service_tenant, admin_role))
+
+  cinder_service = run_command("keystone " + adminAuthArg + " service-list| grep cinder | awk '{print $2}'")
+  if not cinder_service  or not len(str(cinder_service)) > 0:
+    cinder_service = run_command("keystone " + adminAuthArg + " service-create --name=cinder --type=volume --description='Cinder Volume Service'|grep ' id '|awk '{print $4}'")
+
+  cinder_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % cinder_service)
+  if cinder_endpoint and len(str(cinder_endpoint)) > 0:
+    run_command("keystone " + adminAuthArg + " endpoint-delete %s" % cinder_service)
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl 'http://%s:8776/v1/$(tenant_id)s' --internalurl='http://%s:8776/v1/$(tenant_id)s' --adminurl='http://%s:8776/v1/$(tenant_id)s'" % (cinder_service,apiIP,controlNodeIP,controlNodeIP))
+
   log('Completed Keystone')
 #######################################################################
 
@@ -502,8 +510,8 @@ def install_rabbitmq():
   log('Installing RabbitMQ')
   run_command("apt-get install -y rabbitmq-server" , True)
   run_command("service rabbitmq-server restart", True)
-  log('Completed RabbitMQ')
   time.sleep(10)
+  log('Completed RabbitMQ')
 #######################################################################
 
 
