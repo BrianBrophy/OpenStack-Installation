@@ -30,6 +30,7 @@ Within VirtualBox, go to File - Preferences to bring up Settings, then Network a
 - Network Adapter 2: vboxnet2: VirtualBox Host-Only Ethernet Adapter #4 (type = Paravirtualized Network with promiscuous mode all)
 - Network Adapter 3: NAT (type = Intel PRO/1000 with promiscuous mode deny).
 
+
 ### OS Installation
 - Boot off the Ubuntu 12.04 Server ISO to begin installation:
 - Select the language and the default menu option of Install Ubuntu Server
@@ -49,6 +50,7 @@ Within VirtualBox, go to File - Preferences to bring up Settings, then Network a
 - When selecting additional packages, be sure you add OpenSSH server (nothing else needed)
 - Install GRUB boot loader on install disk
 - Reboot
+
 
 ### Network Configuration
 - You can assign any address appropriate for the network (.21s are shown, but you could just as easily use .11s).  It is recomended you choose some number low in the network range in case you want to use the other half of the range for compute instances.
@@ -80,8 +82,22 @@ iface eth2 inet dhcp
 
 <pre>service networking restart</pre>
 
+- You should now be able to SSH into the VM on the 10.10.10.x address you assigned
+
+
 ### OpenStack Installation
+- Install git (as root): 
+
+<pre>apt-get install -y git</pre>
+
+- Download the git contents to the VM
+
+<pre>git clone https://github.com/BrianBrophy/OpenStack-Installation.git</pre>
+
 - Edit icehouse-install.ini and ensure configuration looks good
+
+<pre>vi icehouse-install.ini</pre>
+
 - As root, run the installer:
 
 <pre>python icehouse-setup-control-node.py</pre>
