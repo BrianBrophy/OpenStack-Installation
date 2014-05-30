@@ -17,7 +17,9 @@ Within VirtualBox, go to File - Preferences to bring up Settings, then Network a
 
 
 ## Control Node
-### VM Configuration:
+The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neutron, Nova, Cinder, and Horizon.
+
+### VM Configuration
 - Type: Linux
 - Version: Ubuntu (64-bit)
 - Memory: 2048 MB
