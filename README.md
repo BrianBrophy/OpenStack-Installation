@@ -48,6 +48,7 @@ Within VirtualBox, go to File - Preferences to bring up Settings, then Network a
 - Reboot
 
 ### Network Configuration
+- You can assign any address appropriate for the network (.21s are shown, but you could just as easily use .11s).  It is recomended you choose some number low in the network range in case you want to use the other half of the range for compute instances.
 - Edit /etc/network/interfaces to configure networking (be sure to check the MAC addresses as reported in the VM network configuration in VirtualBox with the OS representation as reported by ifconfig to ensure correct assignments)
 
 <pre>
