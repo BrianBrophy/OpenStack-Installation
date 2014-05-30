@@ -1,7 +1,10 @@
 # OpenStack-Installation
 Scripts to assist with getting up and running on OpenStack with a three node architecture: control, network, compute.
-Based on the OpenStack training guide.
-Tested with Ubuntu 12.04 LTS Server (64-bit) running within VirtualBox.
+
+Based on the OpenStack [installation](http://docs.openstack.org/icehouse/install-guide/install/apt/content/) and [training](http://docs.openstack.org/training-guides/content/) guides.
+
+Tested with [Ubuntu 12.04 LTS Server 64-bit](http://releases.ubuntu.com/precise/ubuntu-12.04.4-server-amd64.iso) running within [VirtualBox 4.3.10](https://www.virtualbox.org/wiki/Downloads).
+
 
 ## VirtualBox Host Networks
 Within VirtualBox, go to File - Preferences to bring up Settings, then Network and select the Host-Only Networks tab to define three host-only networks for OpenStack.  Windows does not support naming the virtual network, so the default Windows host-only network names are included below for reference.
