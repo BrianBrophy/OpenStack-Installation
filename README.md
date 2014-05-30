@@ -103,3 +103,103 @@ iface eth2 inet dhcp
 - As root, run the installer:
 
 <pre>python icehouse-setup-control-node.py</pre>
+
+
+## Network Node
+The OpenStack Network node will run NTP and Neutron.
+
+### VM Configuration
+- Type: Linux
+- Version: Ubuntu (64-bit)
+- Memory: 2048 MB
+- Processors: 1
+- Video Memory: 16 MB
+- Monitor Count: 1
+- Storage: CD/DVD drive on the IDE Controller and a 8 GB disk on the SATA Controller
+- Audio: Can be disabled
+- Network Adapter 1: vboxnet0: VirtualBox Host-Only Ethernet Adapter #2 (type = Paravirtualized Network with promiscuous mode all)
+- Network Adapter 2: vboxnet1: VirtualBox Host-Only Ethernet Adapter #3 (type = Paravirtualized Network with promiscuous mode all)
+- Network Adapter 3: vboxnet2: VirtualBox Host-Only Ethernet Adapter #4 (type = Paravirtualized Network with promiscuous mode all)
+- Network Adapter 4: NAT (type = Intel PRO/1000 with promiscuous mode deny).
+
+
+### OS Installation
+- Boot off the Ubuntu 12.04 Server ISO to begin installation:
+- Select the language and the default menu option of Install Ubuntu Server
+- Configure the keyboard layout
+- For the primary network interface, select the adapter assigned to the Intel chipset
+- Hostname: openstacknetwork
+- User: Configure a non-root user (suggestion: network)
+- Configure Time Zone
+- Disk Partitioning:
+ * Guided - Use entire disk and set up LVM
+- Continue with the installation (base install will proceed)
+- Configure automatic updates (suggest disabling so as not to impact OpenStack)
+- When selecting additional packages, be sure you add OpenSSH server (nothing else needed)
+- Install GRUB boot loader on install disk
+- Reboot
+
+
+### Network Configuration
+- You can assign any address appropriate for the network (.22s are shown, but you could just as easily use .12s).  It is recomended you choose some number low in the network range in case you want to use the other half of the range for compute instances.
+- As root, edit /etc/network/interfaces to configure networking (be sure to check the MAC addresses as reported in the VM network configuration in VirtualBox with the OS representation as reported by ifconfig to ensure correct assignments)
+
+<pre>
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# OpenStack Management interface
+auto eth0
+iface eth0 inet static
+address 10.10.10.22
+netmask 255.255.255.0
+
+# OpenStack Data interface
+auto eth1
+iface eth1 inet static
+address 10.20.20.22
+netmask 255.255.255.0
+
+# OpenStack API interface
+auto eth2
+iface eth2 inet manual
+up ifconfig $IFACE 0.0.0.0 up
+up ip link set $IFACE promisc on
+down ip link set $IFACE promisc off
+down ifconfig $IFACE down
+
+auto br-ex
+iface br-ex inet static
+address 192.168.100.22
+netmask 255.255.255.0
+dns-nameservers 8.8.8.8
+
+# The primary network interface
+auto eth3
+iface eth3 inet dhcp
+</pre>
+
+- As root, restart networking: 
+
+<pre>service networking restart</pre>
+
+- You should now be able to SSH into the VM on the 10.10.10.x address you assigned
+
+
+### OpenStack Installation
+- Install git (as root): 
+
+<pre>apt-get install -y git</pre>
+
+- Download the git contents to the VM
+
+<pre>git clone https://github.com/BrianBrophy/OpenStack-Installation.git</pre>
+
+- Edit icehouse-install.ini and ensure configuration looks good.  Pay close attention to the network section, ensuring the references to the control node addresses are correct.
+
+<pre>vi icehouse-install.ini</pre>
+
+- As root, run the installer:
+
+<pre>python icehouse-setup-network-node.py</pre>
