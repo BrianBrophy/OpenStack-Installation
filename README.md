@@ -26,7 +26,7 @@ The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neut
 - Processors: 1
 - Video Memory: 16 MB
 - Monitor Count: 1
-- Storage: CD/DVD drive on the IDE Controller and the disk image on the SATA Controller
+- Storage: CD/DVD drive on the IDE Controller and a 16 GB disk on the SATA Controller
 - Audio: Can be disabled
 - Network Adapter 1: vboxnet0: VirtualBox Host-Only Ethernet Adapter #2 (type = Paravirtualized Network with promiscuous mode all)
 - Network Adapter 2: vboxnet2: VirtualBox Host-Only Ethernet Adapter #4 (type = Paravirtualized Network with promiscuous mode all)
