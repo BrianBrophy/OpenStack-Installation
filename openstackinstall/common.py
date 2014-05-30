@@ -395,6 +395,59 @@ def install_mysql(rootPassword):
 
 
 #######################################################################
+def install_neutron_on_compute_node(databaseUserPassword, mySQLIP,controlNodeIP):
+  if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
+    raise Exception("Unable to install/configure neutron, no database user password specified")
+  if not mySQLIP or len(str(mySQLIP)) == 0:
+    raise Exception("Unable to install/configure neutron, no MySQL IP specified")
+  if not controlNodeIP or len(str(controlNodeIP)) == 0:
+    raise Exception("Unable to install/configure neutron, no control node IP specified")
+  print ''
+  log('Installing Neutron')
+  run_command("apt-get install -y openvswitch-switch openvswitch-datapath-dkms" , True)
+  run_command("ovs-vsctl --may-exist add-br br-int" , True)
+  run_command("ovs-vsctl --may-exist add-br br-eth2" , True)
+  run_command("ovs-vsctl --may-exist add-port br-eth2 eth2" , True)
+  run_command("apt-get install -y neutron-plugin-openvswitch-agent" , True)
+  log('Configuring Neutron')
+  neutronConf = '/etc/neutron/neutron.conf'
+  set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'neutron.plugins.openvswitch.ovs_neutron_plugin.OVSNeutronPluginV2')
+  set_config_ini(neutronConf, 'DEFAULT', 'verbose', 'False')
+  set_config_ini(neutronConf, 'DEFAULT', 'debug', 'False')
+  set_config_ini(neutronConf, 'DEFAULT', 'auth_strategy', 'keystone')
+  set_config_ini(neutronConf, 'DEFAULT', 'rpc_backend', 'neutron.openstack.common.rpc.impl_kombu')
+  set_config_ini(neutronConf, 'DEFAULT', 'rabbit_host', controlNodeIP)
+  set_config_ini(neutronConf, 'DEFAULT', 'rabbit_port', '5672')
+  set_config_ini(neutronConf, 'DEFAULT', 'allow_overlapping_ips', 'False')
+  set_config_ini(neutronConf, 'DEFAULT', 'root_helper', 'sudo neutron-rootwrap /etc/neutron/rootwrap.conf')
+  set_config_ini(neutronConf, 'keystone_authtoken', 'auth_uri' "http://" + controlNodeIP + ":5000")
+  set_config_ini(neutronConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
+  set_config_ini(neutronConf, 'keystone_authtoken', 'auth_protocol', 'http')
+  set_config_ini(neutronConf, 'keystone_authtoken', 'auth_port', '35357')
+  set_config_ini(neutronConf, 'keystone_authtoken', 'admin_tenant_name', 'service')
+  set_config_ini(neutronConf, 'keystone_authtoken', 'admin_user', 'neutron')
+  set_config_ini(neutronConf, 'keystone_authtoken', 'admin_password', 'neutron')
+  neutronPasteConf = '/etc/neutron/api-paste.ini'
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_host', controlNodeIP)
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_port', '35357')
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_protocol', 'http')
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_tenant_name', 'service')
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_user', 'neutron')
+  set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_password', 'neutron')
+  neutronPluginConf = '/etc/neutron/plugins/ml2/ml2_conf.ini'
+  set_config_ini(neutronPluginConf, 'database', 'sql_connection', "mysql://neutron:%s@%s/neutron" %(databaseUserPassword,mySQLIP))
+  set_config_ini(neutronPluginConf, 'OVS', 'bridge_mappings', 'physnet1:br-eth2')
+  set_config_ini(neutronPluginConf, 'OVS', 'tenant_network_type', 'vlan')
+  set_config_ini(neutronPluginConf, 'OVS', 'network_vlan_ranges', 'physnet1:1000:2999')
+  set_config_ini(neutronPluginConf, 'OVS', 'integration_bridge', 'br-int')
+  set_config_ini(neutronPluginConf, 'securitygroup', 'firewall_driver', 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver')
+  run_command("service openvswitch-switch restart", True)
+  run_command("service neutron-plugin-openvswitch-agent restart", True)
+  log('Completed Neutron')
+#######################################################################
+
+
+#######################################################################
 def install_neutron_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure neutron, no database user password specified")
@@ -510,7 +563,101 @@ def install_neutron_on_network_node(databaseUserPassword, mySQLIP,controlNodeIP)
 
 
 #######################################################################
-def install_nova(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, apiIP):
+def install_nova_on_compute_node(databaseUserPassword, mySQLIP, controlNodeIP, apiIP, computeNodeIP):
+  if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
+    raise Exception("Unable to install/configure nova, no database user password specified")
+  if not mySQLIP or len(str(mySQLIP)) == 0:
+    raise Exception("Unable to install/configure nova, no MySQL IP specified")
+  if not controlNodeIP or len(str(controlNodeIP)) == 0:
+    raise Exception("Unable to install/configure nova, no control node IP specified")
+  if not apiIP or len(str(apiIP)) == 0:
+    raise Exception("Unable to install/configure nova, no API IP specified")
+  if not computeNodeIP or len(str(computeNodeIP)) == 0:
+    raise Exception("Unable to install/configure nova, no compute node IP specified")
+  print ''
+  log('Installing Nova')
+  os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
+  run_command("apt-get install -y qemu-kvm libvirt-bin python-libvirt" , True)
+  run_command("apt-get install -y nova-compute-kvm novnc python-guestfs" , True)
+  log('Configuring Nova')
+  delete_file('/var/lib/nova/nova.sqlite')
+  overRideExists = run_command('dpkg-statoverride --list | egrep -c "/boot/vmlinuz-$(uname -r)"' + " | awk '{print $2}'")
+  if str(overRideExists) == '0':
+    run_command("dpkg-statoverride  --update --add root root 0644 /boot/vmlinuz-$(uname -r)")
+  run_command("echo '#!/bin/sh' > /etc/kernel/postinst.d/statoverride")
+  run_command("echo 'version=" + '"$1"' + "' >> /etc/kernel/postinst.d/statoverride")
+  run_command("echo '[ -z " + '"${version}" ] && exit 0' + "' >> /etc/kernel/postinst.d/statoverride")
+  run_command("echo 'dpkg-statoverride --update --add root root 0644 /boot/vmlinuz-${version}' >> /etc/kernel/postinst.d/statoverride")
+  run_command("chmod +x /etc/kernel/postinst.d/statoverride")
+  novaConf = '/etc/nova/nova.conf'
+  set_config_ini(novaConf, 'DEFAULT', 'logdir', '/var/log/nova')
+  set_config_ini(novaConf, 'DEFAULT', 'lock_path', '/var/lib/nova')
+  set_config_ini(novaConf, 'DEFAULT', 'root_helper', 'sudo nova-rootwrap /etc/nova/rootwrap.conf')
+  set_config_ini(novaConf, 'DEFAULT', 'verbose', 'False')
+  set_config_ini(novaConf, 'DEFAULT', 'debug', 'False')
+  set_config_ini(novaConf, 'DEFAULT', 'rabbit_host', controlNodeIP)
+  set_config_ini(novaConf, 'DEFAULT', 'rpc_backend', 'rabbit')
+  set_config_ini(novaConf, 'DEFAULT', 'sql_connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,mySQLIP))
+  set_config_ini(novaConf, 'DEFAULT', 'glance_host', controlNodeIP)
+  set_config_ini(novaConf, 'DEFAULT', 'glance_api_servers', "%s:9292" %controlNodeIP)
+  set_config_ini(novaConf, 'DEFAULT', 'compute_driver', 'libvirt.LibvirtDriver')
+  set_config_ini(novaConf, 'DEFAULT', 'dhcpbridge_flagfile', '/etc/nova/nova.conf')
+  set_config_ini(novaConf, 'DEFAULT', 'firewall_driver', 'nova.virt.firewall.NoopFirewallDriver')
+  set_config_ini(novaConf, 'DEFAULT', 'security_group_api', 'neutron')
+  set_config_ini(novaConf, 'DEFAULT', 'libvirt_vif_driver', 'nova.virt.libvirt.vif.LibvirtGenericVIFDriver')
+  set_config_ini(novaConf, 'DEFAULT', 'auth_strategy', 'keystone')
+  set_config_ini(novaConf, 'DEFAULT', 'novnc_enabled', 'true')
+  set_config_ini(novaConf, 'DEFAULT', 'novncproxy_base_url', "http://%s:6080/vnc_auto.html" %apiIP)
+  set_config_ini(novaConf, 'DEFAULT', 'novncproxy_port', '6080')
+  set_config_ini(novaConf, 'DEFAULT', 'vncserver_proxyclient_address', computeNodeIP)
+  set_config_ini(novaConf, 'DEFAULT', 'my_ip', computeNodeIP)
+  set_config_ini(novaConf, 'DEFAULT', 'vncserver_listen', '0.0.0.0')
+  set_config_ini(novaConf, 'DEFAULT', 'network_api_class', 'nova.network.neutronv2.api.API')
+  set_config_ini(novaConf, 'DEFAULT', 'neutron_admin_username', 'neutron')
+  set_config_ini(novaConf, 'DEFAULT', 'neutron_admin_password', 'neutron')
+  set_config_ini(novaConf, 'DEFAULT', 'neutron_admin_tenant_name', 'service')
+  set_config_ini(novaConf, 'DEFAULT', 'neutron_admin_auth_url', "http://%s:35357/v2.0/" %controlNodeIP)
+  set_config_ini(novaConf, 'DEFAULT', 'neutron_auth_strategy', 'keystone')
+  set_config_ini(novaConf, 'DEFAULT', 'neutron_url', "http://%s:9696/" %controlNodeIP)
+  set_config_ini(novaConf, 'database', 'connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,mySQLIP))
+  set_config_ini(novaConf, 'keystone_authtoken', 'auth_uri', "http://%s:5000" %controlNodeIP)
+  set_config_ini(novaConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
+  set_config_ini(novaConf, 'keystone_authtoken', 'auth_port', '35357')
+  set_config_ini(novaConf, 'keystone_authtoken', 'auth_protocol', 'http')
+  set_config_ini(novaConf, 'keystone_authtoken', 'admin_tenant_name', 'service')
+  set_config_ini(novaConf, 'keystone_authtoken', 'admin_user', 'nova')
+  set_config_ini(novaConf, 'keystone_authtoken', 'admin_password', 'nova')
+  novaPasteApiConf = '/etc/nova/api-paste.ini'
+  set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_host', controlNodeIP)
+  set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_port', '35357')
+  set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_protocol', 'http')
+  set_config_ini(novaPasteApiConf, 'filter:authtoken', 'admin_tenant_name', 'service')
+  set_config_ini(novaPasteApiConf, 'filter:authtoken', 'admin_user', 'nova')
+  set_config_ini(novaPasteApiConf, 'filter:authtoken', 'admin_password', 'nova')
+  set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_version', 'v2.0')
+  novaComputeConf = '/etc/nova/nova-compute.conf'
+  set_config_ini(novaComputeConf, 'DEFAULT', 'libvirt_type', 'qemu')
+  set_config_ini(novaComputeConf, 'DEFAULT', 'compute_driver', 'libvirt.LibvirtDriver')
+  set_config_ini(novaComputeConf, 'DEFAULT', 'libvirt_vif_type', 'ethernet')
+  vxmOrSxm = run_command("egrep -c '(vmx|svm)' /proc/cpuinfo | awk '{print $2}'")
+  if str(vxmOrSxm) == '0':
+    # no hardware acceleration, configure libvirt to use QEMU
+    set_config_ini(novaComputeConf, 'libvirt', 'virt_type', 'qemu')
+    isIntel = run_command("egrep -i -c 'intel' /proc/cpuinfo | awk '{print $2}'")
+    if str(isIntel) == '0':
+      # AMD
+      run_command("grep -e '^kvm_amd$' /etc/modules ; if [ ! $? -eq 0 ] ; then echo 'kvm_amd' >> /etc/modules; fi;")
+    else:
+      # Intel
+      run_command("grep -e '^kvm_intel$' /etc/modules ; if [ ! $? -eq 0 ] ; then echo 'kvm_intel' >> /etc/modules; fi;")
+  run_command("service libvirt-bin restart", True)
+  run_command("service nova-compute restart", True)
+  log('Completed Nova')
+#######################################################################
+
+
+#######################################################################
+def install_nova_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, apiIP):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure nova, no database user password specified")
   if not mySQLIP or len(str(mySQLIP)) == 0:

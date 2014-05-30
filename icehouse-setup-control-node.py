@@ -32,7 +32,7 @@ managementNetworkIP = osicommon.get_network_address(managementNetworkInterface)
 apiNetworkInterface = osicommon.get_config_ini(iniPath, 'control', 'network_interface_api')
 apiNetworkIP = osicommon.get_network_address(apiNetworkInterface)
 print ''
-osicommon.log('Found network addresses:')
+osicommon.log('Using network addresses:')
 print '    Management Network Address: ' + str(managementNetworkIP)
 print '    API Network Address: ' + str(apiNetworkIP)
 
@@ -60,7 +60,7 @@ osicommon.install_neutron_on_control_node(neutronDatabasePassword, managementNet
 
 # Install Nova
 novaDatabasePassword = osicommon.get_config_ini(iniPath, 'nova', 'database_user_password')
-osicommon.install_nova(novaDatabasePassword, managementNetworkIP, mysqlPassword, managementNetworkIP, apiNetworkIP)
+osicommon.install_nova_on_control_node(novaDatabasePassword, managementNetworkIP, mysqlPassword, managementNetworkIP, apiNetworkIP)
 
 # Install Cinder
 cinderDatabasePassword = osicommon.get_config_ini(iniPath, 'cinder', 'database_user_password')
