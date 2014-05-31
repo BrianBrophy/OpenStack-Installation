@@ -34,7 +34,7 @@ iniPath = os.path.join(os.path.dirname(__file__), 'icehouse-install.ini')
 
 # Get network addresses
 controlManagementNetworkIP = osicommon.get_config_ini(iniPath, 'control', 'network_address_management)
-controlApiNetworkIP = osicommon.get_config_ini(iniPath, 'control', 'network_interface_api')
+controlApiNetworkIP = osicommon.get_config_ini(iniPath, 'control', 'network_address_api')
 print ''
 osicommon.log('Using network addresses:')
 print '    Control Node Management Network Address: ' + str(controlManagementNetworkIP)
