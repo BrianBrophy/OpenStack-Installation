@@ -42,9 +42,9 @@ The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neut
 - User: Configure a non-root user (suggestion: control)
 - Configure Time Zone
 - Disk Partitioning:
- * 500 MB Primary (mounted as /boot, flagged bootable)
+ * 512 MB Primary (mounted as /boot, flagged bootable)
  * 1024 MB Logical (swap)
- * 8.0 GB Primary (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
+ * 8.0 GB Logical (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
  * 4 GB Logical (used for LVM) and in LVM create a volume group named cinder-volumes (not formatted nor mounted as it will be managed by OpenStack)
  * (Remainder) Logical (for XFS) but no mounting at this time (we will setup later for object storage)
 - Continue with the installation (base install will proceed)
@@ -132,9 +132,9 @@ The OpenStack Network node will run NTP and Neutron.
 - User: Configure a non-root user (suggestion: network)
 - Configure Time Zone
 - Disk Partitioning:
- * 500 MB Primary (mounted as /boot, flagged bootable)
+ * 512 MB Primary (mounted as /boot, flagged bootable)
  * 1024 MB Logical (swap)
- * (Remainder) Primary (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
+ * (Remainder) Logical (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
 - Continue with the installation (base install will proceed)
 - Configure automatic updates (suggest disabling so as not to impact OpenStack)
 - When selecting additional packages, be sure you add OpenSSH server (nothing else needed)
@@ -234,9 +234,9 @@ The OpenStack Compute node will run NTP, Nova, and Neutron.
 - User: Configure a non-root user (suggestion: compute)
 - Configure Time Zone
 - Disk Partitioning:
- * 500 MB Primary (mounted as /boot, flagged bootable)
+ * 512 MB Primary (mounted as /boot, flagged bootable)
  * 1024 MB Logical (swap)
- * (Remainder) Primary (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
+ * (Remainder) Logical (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
 - Continue with the installation (base install will proceed)
 - Configure automatic updates (suggest disabling so as not to impact OpenStack)
 - When selecting additional packages, be sure you add OpenSSH server (nothing else needed)
