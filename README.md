@@ -42,10 +42,10 @@ The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neut
 - User: Configure a non-root user (suggestion: control)
 - Configure Time Zone
 - Disk Partitioning:
- * 8.0 GB Primary (no mount poinr assigned) ... LVM volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
- * 500 MB Primary (mounted as /boot)
+ * 500 MB Primary (mounted as /boot, flagged bootable)
  * 1024 MB Logical (swap)
- * 4 GB Logical (for LVM) and in LVM create a volume group named cinder-volumes (not formatted nor mounted as it will be managed by OpenStack)
+ * 8.0 GB Primary (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
+ * 4 GB Logical (used for LVM) and in LVM create a volume group named cinder-volumes (not formatted nor mounted as it will be managed by OpenStack)
  * (Remainder) Logical (for XFS) but no mounting at this time (we will setup later for object storage)
 - Continue with the installation (base install will proceed)
 - Configure automatic updates (suggest disabling so as not to impact OpenStack)
@@ -132,7 +132,9 @@ The OpenStack Network node will run NTP and Neutron.
 - User: Configure a non-root user (suggestion: network)
 - Configure Time Zone
 - Disk Partitioning:
- * Guided - Use entire disk and set up LVM
+ * 500 MB Primary (mounted as /boot, flagged bootable)
+ * 1024 MB Logical (swap)
+ * (Remainder) Primary (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
 - Continue with the installation (base install will proceed)
 - Configure automatic updates (suggest disabling so as not to impact OpenStack)
 - When selecting additional packages, be sure you add OpenSSH server (nothing else needed)
@@ -203,3 +205,91 @@ iface eth3 inet dhcp
 - As root, run the installer:
 
 <pre>python icehouse-setup-network-node.py</pre>
+
+
+## Compute Node
+The OpenStack Compute node will run NTP, Nova, and Neutron.
+
+
+### VM Configuration
+- Type: Linux
+- Version: Ubuntu (64-bit)
+- Memory: 4096 MB (allocating more will yield more resources for OpenStack Compute instances)
+- Processors: 1 (allocating more will yield more resources for OpenStack Compute instances)
+- Video Memory: 16 MB
+- Monitor Count: 1
+- Storage: CD/DVD drive on the IDE Controller and a 16 GB disk on the SATA Controller
+- Audio: Can be disabled
+- Network Adapter 1: vboxnet0: VirtualBox Host-Only Ethernet Adapter #2 (type = Paravirtualized Network with promiscuous mode all)
+- Network Adapter 2: vboxnet1: VirtualBox Host-Only Ethernet Adapter #3 (type = Paravirtualized Network with promiscuous mode all)
+- Network Adapter 3: NAT (type = Intel PRO/1000 with promiscuous mode deny).
+
+
+### OS Installation
+- Boot off the Ubuntu 12.04 Server ISO to begin installation:
+- Select the language and the default menu option of Install Ubuntu Server
+- Configure the keyboard layout
+- For the primary network interface, select the adapter assigned to the Intel chipset
+- Hostname: openstackcompute
+- User: Configure a non-root user (suggestion: compute)
+- Configure Time Zone
+- Disk Partitioning:
+ * 500 MB Primary (mounted as /boot, flagged bootable)
+ * 1024 MB Logical (swap)
+ * (Remainder) Primary (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
+- Continue with the installation (base install will proceed)
+- Configure automatic updates (suggest disabling so as not to impact OpenStack)
+- When selecting additional packages, be sure you add OpenSSH server (nothing else needed)
+- Install GRUB boot loader on install disk
+- Reboot
+
+
+### Network Configuration
+- You can assign any address appropriate for the network (.23s are shown, but you could just as easily use .13s).  It is recomended you choose some number low in the network range in case you want to use the other half of the range for compute instances.
+- As root, edit /etc/network/interfaces to configure networking (be sure to check the MAC addresses as reported in the VM network configuration in VirtualBox with the OS representation as reported by ifconfig to ensure correct assignments)
+
+<pre>
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# OpenStack Management interface
+auto eth0
+iface eth0 inet static
+address 10.10.10.23
+netmask 255.255.255.0
+
+# OpenStack Data interface
+auto eth1
+iface eth1 inet static
+address 10.20.20.23
+netmask 255.255.255.0
+
+# The primary network interface
+auto eth2
+iface eth2 inet dhcp
+</pre>
+
+- As root, restart networking: 
+
+<pre>service networking restart</pre>
+
+- You should now be able to SSH into the VM on the 10.10.10.x address you assigned
+
+
+### OpenStack Installation
+- Install git (as root): 
+
+<pre>apt-get install -y git</pre>
+
+- Download the git contents to the VM
+
+<pre>git clone https://github.com/BrianBrophy/OpenStack-Installation.git</pre>
+
+- Edit icehouse-install.ini and ensure configuration looks good.  Pay close attention to the compute section, ensuring the references to the control node addresses are correct.
+
+<pre>vi icehouse-install.ini</pre>
+
+- As root, run the installer:
+
+<pre>python icehouse-setup-compute-node.py</pre>
