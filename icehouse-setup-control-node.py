@@ -31,6 +31,8 @@ managementNetworkInterface = osicommon.get_config_ini(iniPath, 'control', 'netwo
 managementNetworkIP = osicommon.get_network_address(managementNetworkInterface)
 apiNetworkInterface = osicommon.get_config_ini(iniPath, 'control', 'network_interface_api')
 apiNetworkIP = osicommon.get_network_address(apiNetworkInterface)
+osicommon.set_config_ini(iniPath, 'control', 'network_address_management', managementNetworkIP)
+osicommon.set_config_ini(iniPath, 'control', 'network_interface_api', apiNetworkIP)
 print ''
 osicommon.log('Using network addresses:')
 print '    Management Network Address: ' + str(managementNetworkIP)
