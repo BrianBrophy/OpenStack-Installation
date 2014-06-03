@@ -296,14 +296,14 @@ iface eth2 inet dhcp
 
 
 # Using OpenStack
-
-## Adding CirrOS Image to Glance
-- You can do this in the Horizon dashboard, or the command-line (shown below)
-- Login to the control node
+- For all of these command-line actions, you will either have to have environment variables configured in the shell for OpenStack clients to use (that you can set by sourcing a file), or use command-line arguments to specify them
+- We will be showing the sourcing usage
 - Source the admin credentials (created by the installation script)
 
 <pre>source /root/openstack-admin.rc</pre>
 
+
+## Adding CirrOS Image to Glance
 - Load the CirrOS image
 
 <pre>glance image-create --name 'CirrOS 0.3.2 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://download.cirros-cloud.net/0.3.2/cirros-0.3.2-x86_64-disk.img</pre>
@@ -311,4 +311,73 @@ iface eth2 inet dhcp
 - Confirm by listing Glance images
 
 <pre>glance image-list</pre>
+
+
+## Adding Tenants/Projects
+- Create the tenant/project
+
+<pre>keystone tenant-create --name=demo --enabled true</pre>
+
+- Confirm by listing tenants
+
+<pre>keystone tenant-list</pre>
+
+
+## Editing Quotas For Tenants/Projects
+- Determine the tenant ID of the tenant to view/edit using tenant-list
+
+<pre>keystone tenant-list</pre>
+
+- This yields output like
+
+<pre>
++----------------------------------+---------+---------+
+|                id                |   name  | enabled |
++----------------------------------+---------+---------+
+| ec2404d2031a4242b4cbdf854f3dfe53 |  admin  |   True  |
+| 2c708f8442ed437d8b8cb5a9c1bfb51c |   demo  |   True  |
+| 53c5939d64fc42359a1d5776dc8822cf | service |   True  |
++----------------------------------+---------+---------+
+</pre>
+
+- So, we will be working with the demo tenant, whose tenant ID is 2c708f8442ed437d8b8cb5a9c1bfb51c
+
+- Viewing current quota
+
+<pre>nova quota-show --tenant 2c708f8442ed437d8b8cb5a9c1bfb51c</pre>
+
+- This shows us something like
+
+<pre>
++-----------------------------+-------+
+| Quota                       | Limit |
++-----------------------------+-------+
+| instances                   | 10    |
+| cores                       | 20    |
+| ram                         | 51200 |
+| floating_ips                | 10    |
+| fixed_ips                   | -1    |
+| metadata_items              | 128   |
+| injected_files              | 5     |
+| injected_file_content_bytes | 10240 |
+| injected_file_path_bytes    | 255   |
+| key_pairs                   | 100   |
+| security_groups             | 10    |
+| security_group_rules        | 20    |
++-----------------------------+-------+
+</pre>
+
+- Let's adjust the number of key pairs to 200
+
+<pre>nova quota-update --key-pairs 200 2c708f8442ed437d8b8cb5a9c1bfb51c</pre>
+
+
+## Adding Users
+- Create the user
+
+<pre>keystone user-create --name brian --pass password --enabled true</pre>
+
+- Confirm by listing users
+
+<pre>keystone user-list</pre>
 
