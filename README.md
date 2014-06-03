@@ -293,3 +293,22 @@ iface eth2 inet dhcp
 - As root, run the installer:
 
 <pre>python icehouse-setup-compute-node.py</pre>
+
+
+# Using OpenStack
+
+## Adding CirrOS Image to Glance
+- You can do this in the Horizon dashboard, or the command-line (shown below)
+- Login to the control node
+- Source the admin credentials (created by the installation script)
+
+<pre>source /root/openstack-admin.rc</pre>
+
+- Load the CirrOS image
+
+<pre>glance image-create --name 'CirrOS 0.3.2 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://download.cirros-cloud.net/0.3.2/cirros-0.3.2-x86_64-disk.img</pre>
+
+- Confirm by listing Glance images
+
+<pre>glance image-list</pre>
+
