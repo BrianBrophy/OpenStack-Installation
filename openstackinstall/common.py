@@ -642,11 +642,11 @@ def install_nova_on_compute_node(databaseUserPassword, mySQLIP, controlNodeIP, a
   set_config_ini(novaComputeConf, 'DEFAULT', 'libvirt_type', 'qemu')
   set_config_ini(novaComputeConf, 'DEFAULT', 'compute_driver', 'libvirt.LibvirtDriver')
   set_config_ini(novaComputeConf, 'DEFAULT', 'libvirt_vif_type', 'ethernet')
-  vxmOrSxm = run_command("egrep -c '(vmx|svm)' /proc/cpuinfo | awk '{print $2}'")
+  vxmOrSxm = run_command("egrep -c '(vmx|svm)' /proc/cpuinfo | awk '{print $1}'")
   if str(vxmOrSxm) == '0':
     # no hardware acceleration, configure libvirt to use QEMU
     set_config_ini(novaComputeConf, 'libvirt', 'virt_type', 'qemu')
-    isIntel = run_command("egrep -i -c 'intel' /proc/cpuinfo | awk '{print $2}'")
+    isIntel = run_command("egrep -i -c 'intel' /proc/cpuinfo | awk '{print $1}'")
     if str(isIntel) == '0':
       # AMD
       run_command("grep -e '^kvm_amd$' /etc/modules ; if [ ! $? -eq 0 ] ; then echo 'kvm_amd' >> /etc/modules; fi;")
