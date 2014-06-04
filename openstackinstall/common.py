@@ -26,7 +26,7 @@ def base_system_update():
   run_command("echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/icehouse main >> /etc/apt/sources.list.d/icehouse.list")
   run_command("apt-get update -y", True)
   run_command("apt-get dist-upgrade -y", True)
-  run_command("apt-get install -y linux-image-generic-lts-saucy linux-headers-generic-lts-saucy", True)
+  #run_command("apt-get install -y linux-image-generic-lts-saucy linux-headers-generic-lts-saucy", True)
 #######################################################################
 
 
@@ -842,4 +842,17 @@ def set_config_ini(filePath, section, key, value):
   with open(filePath, 'w') as f:
     config.write(f)
 #######################################################################
+
+
+#######################################################################
+def set_sysctl(key, value):
+  if not key or len(str(key)) == 0:
+    raise Exception("Unable to set sysctl configuration, no key specified")
+  if not value or len(str(value)) == 0:
+    raise Exception("Unable to set sysctl configuration, no value specified")
+  cmd = """grep -i '^%s\s*=' /etc/sysctl.conf; if [ $? -eq 0 ] ; then sed -i 's/^%s\s*=.*/%s=%s/' /etc/sysctl.conf; else echo '%s=%s' >>/etc/sysctl.conf; fi; sysctl -p;""" % (key,key,key,value,key,value)
+  output = run_command(cmd)
+  return output
+#######################################################################
+
 

@@ -23,6 +23,9 @@ print ''
 # Update, Upgrade, Add Repo
 osicommon.base_system_update()
 
+# sysctl
+osicommon.set_sysctl('net.ipv4.ip_forward', '1')
+
 # Install vlan
 osicommon.install_vlan()
 
