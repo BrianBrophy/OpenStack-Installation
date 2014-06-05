@@ -9,11 +9,11 @@ Tested with [Ubuntu 12.04 LTS Server 64-bit](http://releases.ubuntu.com/precise/
 ## VirtualBox Host Networks
 Within VirtualBox, go to File - Preferences to bring up Settings, then Network and select the Host-Only Networks tab to define three host-only networks for OpenStack.  Windows does not support naming the virtual network, so the default Windows host-only network names are included below for reference.
 
-| Network        | Windows Network Name           | IPv4 Address           | IPv4 Mask      | DHCP |  
-|:-------------- |:------------------------------ |:---------------------- |:-------------- |:---------|  
-| vboxnet0       | Host-Only Ethernet Adapter #2  | 10.10.10.1             | 255.255.255.0  | Disabled |
-| vboxnet1       | Host-Only Ethernet Adapter #3  | 10.20.20.1             | 255.255.255.0  | Disabled |
-| vboxnet2       | Host-Only Ethernet Adapter #4  | 192.168.100.1          | 255.255.255.0  | Disabled |
+| Network        | Windows Network Name           | OpenStack Usage | IPv4 Address           | IPv4 Mask      | DHCP |  
+|:-------------- |:------------------------------ |:--------------- |:---------------------- |:-------------- |:---------|  
+| vboxnet0       | Host-Only Ethernet Adapter #2  | Management      | 10.10.10.1             | 255.255.255.0  | Disabled |
+| vboxnet1       | Host-Only Ethernet Adapter #3  | Instances/VMs   | 10.20.20.1             | 255.255.255.0  | Disabled |
+| vboxnet2       | Host-Only Ethernet Adapter #4  | External        | 192.168.100.1          | 255.255.255.0  | Disabled |
 
 
 ## Control Node
@@ -29,8 +29,7 @@ The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neut
 - Storage: CD/DVD drive on the IDE Controller and a 16 GB disk on the SATA Controller
 - Audio: Can be disabled
 - Network Adapter 1: vboxnet0: VirtualBox Host-Only Ethernet Adapter #2 (type = Paravirtualized Network with promiscuous mode all)
-- Network Adapter 2: vboxnet2: VirtualBox Host-Only Ethernet Adapter #4 (type = Paravirtualized Network with promiscuous mode all)
-- Network Adapter 3: NAT (type = Intel PRO/1000 with promiscuous mode deny).
+- Network Adapter 2: NAT (type = Intel PRO/1000 with promiscuous mode deny).
 
 
 ### OS Installation
@@ -69,15 +68,9 @@ iface eth0 inet static
 address 10.10.10.21
 netmask 255.255.255.0
 
-# OpenStack API interface
-auto eth1
-iface eth1 inet static
-address 192.168.100.21
-netmask 255.255.255.0
-
 # The primary network interface
-auto eth2
-iface eth2 inet dhcp
+auto eth1
+iface eth1 inet dhcp
 </pre>
 
 - As root, restart networking: 
@@ -157,25 +150,19 @@ iface eth0 inet static
 address 10.10.10.22
 netmask 255.255.255.0
 
-# OpenStack Data interface
+# OpenStack Instance interface
 auto eth1
 iface eth1 inet static
 address 10.20.20.22
 netmask 255.255.255.0
 
-# OpenStack API interface
+# OpenStack External interface
 auto eth2
 iface eth2 inet manual
 up ifconfig $IFACE 0.0.0.0 up
 up ip link set $IFACE promisc on
 down ip link set $IFACE promisc off
 down ifconfig $IFACE down
-
-auto br-ex
-iface br-ex inet static
-address 192.168.100.22
-netmask 255.255.255.0
-dns-nameservers 8.8.8.8
 
 # The primary network interface
 auto eth3
@@ -259,7 +246,7 @@ iface eth0 inet static
 address 10.10.10.23
 netmask 255.255.255.0
 
-# OpenStack Data interface
+# OpenStack Instance interface
 auto eth1
 iface eth1 inet static
 address 10.20.20.23
@@ -392,10 +379,10 @@ iface eth2 inet dhcp
 <pre>neutron net-list</pre>
 
 ## Creating Subnet on External Network
-- We configured our VirtualBox host-only network to access the VMs as 10.10.10.0/24
-- We will take part of this subnet, and use it for an allocation pool on the external subnet
+- We configured our VirtualBox host-only network to access the VMs as 192.168.100.0/24
+- We will take this subnet, and use it as an allocation pool for floating IPs on the external subnet
 
-<pre>neutron subnet-create ext-net --name ext-subnet --allocation-pool start=10.10.10.101,end=10.10.10.200 --disable-dhcp --gateway 10.10.10.1 10.10.10.0/24</pre>
+<pre>neutron subnet-create ext-net --name ext-subnet --allocation-pool start=192.168.100.2,end=192.168.100.254 --disable-dhcp --gateway 192.168.100.1 192.168.100.0/24</pre>
 
 - Confirm by listing subnets
 
@@ -409,7 +396,7 @@ iface eth2 inet dhcp
 export OS_USERNAME=brian
 export OS_PASSWORD=password
 export OS_TENANT_NAME=demo
-export OS_AUTH_URL=http://192.168.100.41:5000/v2.0
+export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 </pre>
 
 - Source the tenant .rc file
@@ -424,7 +411,7 @@ export OS_AUTH_URL=http://192.168.100.41:5000/v2.0
 
 <pre>neutron net-list</pre>
 
-- Create tenant subnet
+- Create tenant subnet (this subnet is hidden behind the Network node, accessible only by the instance VMs)
 
 <pre>neutron subnet-create demo-net --name demo-subnet --gateway 192.168.150.1 192.168.150.0/24</pre>
 
