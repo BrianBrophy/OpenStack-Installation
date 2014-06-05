@@ -40,24 +40,25 @@ iniPath = os.path.join(os.path.dirname(__file__), 'icehouse-install.ini')
 # Get network addresses
 managementNetworkInterface = osicommon.get_config_ini(iniPath, 'compute', 'network_interface_management')
 managementNetworkIP = osicommon.get_network_address(managementNetworkInterface)
+instanceNetworkInterface = osicommon.get_config_ini(iniPath, 'compute', 'network_interface_instance')
+instanceNetworkIP = osicommon.get_network_address(instanceNetworkInterface)
 controlManagementNetworkIP = osicommon.get_config_ini(iniPath, 'control', 'network_address_management')
-controlApiNetworkIP = osicommon.get_config_ini(iniPath, 'control', 'network_address_api')
 print ''
 osicommon.log('Using network addresses:')
-print '    Management Network Address: ' + str(managementNetworkIP)
 print '    Control Node Management Network Address: ' + str(controlManagementNetworkIP)
-print '    Control Node API Network Address: ' + str(controlApiNetworkIP)
+print '    Compute Node Management Network Address: ' + str(managementNetworkIP)
+print '    Compute Node Instance Network Address: ' + str(instanceNetworkIP)
 
 # Install NTP
 osicommon.install_ntp(controlManagementNetworkIP)
 
 # Install Nova
 novaDatabasePassword = osicommon.get_config_ini(iniPath, 'nova', 'database_user_password')
-osicommon.install_nova_on_compute_node(novaDatabasePassword, controlManagementNetworkIP, controlManagementNetworkIP, controlApiNetworkIP, managementNetworkIP)
+osicommon.install_nova_on_compute_node(novaDatabasePassword, controlManagementNetworkIP, managementNetworkIP)
 
 # Install Neutron
 neutronDatabasePassword = osicommon.get_config_ini(iniPath, 'neutron', 'database_user_password')
-osicommon.install_neutron_on_compute_node(neutronDatabasePassword, controlManagementNetworkIP, controlManagementNetworkIP)
+osicommon.install_neutron_on_compute_node(neutronDatabasePassword, controlManagementNetworkIP, instanceNetworkIP)
 
 print ''
 osicommon.log('Finished installation')

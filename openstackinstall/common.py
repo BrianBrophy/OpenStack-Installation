@@ -26,7 +26,7 @@ def base_system_update():
   run_command("echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/icehouse main >> /etc/apt/sources.list.d/icehouse.list")
   run_command("apt-get update -y", True)
   run_command("apt-get dist-upgrade -y", True)
-  #run_command("apt-get install -y linux-image-generic-lts-saucy linux-headers-generic-lts-saucy", True)
+  run_command("apt-get install -y linux-image-generic-lts-saucy linux-headers-generic-lts-saucy", True)
 #######################################################################
 
 
@@ -76,17 +76,13 @@ def install_bridgeutils():
 
 
 #######################################################################
-def install_cinder(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, apiIP):
+def install_cinder(databaseUserPassword, controlNodeIP, mySQLPassword):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure cinder, no database user password specified")
-  if not mySQLIP or len(str(mySQLIP)) == 0:
-    raise Exception("Unable to install/configure cinder, no MySQL IP specified")
   if not mySQLPassword or len(str(mySQLPassword)) == 0:
     raise Exception("Unable to install/configure cinder, no MySQL Password specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
     raise Exception("Unable to install/configure cinder, no control node IP specified")
-  if not apiIP or len(str(apiIP)) == 0:
-    raise Exception("Unable to install/configure cinder, no API IP specified")
   print ''
   log('Installing Cinder')
   run_db_command(mySQLPassword, "CREATE DATABASE IF NOT EXISTS cinder CHARACTER SET utf8 COLLATE utf8_general_ci;")
@@ -108,7 +104,7 @@ def install_cinder(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, 
   run_command("service open-iscsi restart")
   cinderConf = '/etc/cinder/cinder.conf'
   set_config_ini(cinderConf, 'DEFAULT', 'rootwrap_config', '/etc/cinder/rootwrap.conf')
-  set_config_ini(cinderConf, 'DEFAULT', 'sql_connection', "mysql://cinder:%s@%s/cinder" %(databaseUserPassword,mySQLIP))
+  set_config_ini(cinderConf, 'DEFAULT', 'sql_connection', "mysql://cinder:%s@%s/cinder" %(databaseUserPassword,controlNodeIP))
   set_config_ini(cinderConf, 'DEFAULT', 'api_paste_config', '/etc/cinder/api-paste.ini')
   set_config_ini(cinderConf, 'DEFAULT', 'iscsi_helper', 'ietadm')
   set_config_ini(cinderConf, 'DEFAULT', 'volume_name_template', 'volume-%s')
@@ -120,7 +116,7 @@ def install_cinder(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, 
   set_config_ini(cinderConf, 'DEFAULT', 'rpc_backend', 'cinder.openstack.common.rpc.impl_kombu')
   set_config_ini(cinderConf, 'DEFAULT', 'rabbit_host', controlNodeIP)
   set_config_ini(cinderConf, 'DEFAULT', 'rabbit_port', '5672')
-  set_config_ini(cinderConf, 'database', 'connection', "mysql://cinder:%s@%s/cinder" %(databaseUserPassword,mySQLIP))
+  set_config_ini(cinderConf, 'database', 'connection', "mysql://cinder:%s@%s/cinder" %(databaseUserPassword,controlNodeIP))
   set_config_ini(cinderConf, 'keystone_authtoken', 'auth_uri', "http://%s:5000" %controlNodeIP)
   set_config_ini(cinderConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
   set_config_ini(cinderConf, 'keystone_authtoken', 'auth_port', '35357')
@@ -130,7 +126,7 @@ def install_cinder(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, 
   set_config_ini(cinderConf, 'keystone_authtoken', 'admin_password', 'cinder')
   cinderApiPasteConf = '/etc/cinder/api-paste.ini'
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'service_protocol', 'http')
-  set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'service_host', apiIP)
+  set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'service_host', controlNodeIP)
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'service_port', '5000')
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'auth_host', controlNodeIP)
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'auth_port', '35357')
@@ -146,11 +142,9 @@ def install_cinder(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, 
 
 
 #######################################################################
-def install_glance(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP):
+def install_glance(databaseUserPassword, controlNodeIP, mySQLPassword):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure glance, no database user password specified")
-  if not mySQLIP or len(str(mySQLIP)) == 0:
-    raise Exception("Unable to install/configure glance, no MySQL IP specified")
   if not mySQLPassword or len(str(mySQLPassword)) == 0:
     raise Exception("Unable to install/configure glance, no MySQL Password specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
@@ -163,12 +157,12 @@ def install_glance(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP):
   log('Configuring Glance')
   delete_file('/var/lib/glance/glance.sqlite')
   glanceApiConf = '/etc/glance/glance-api.conf'
-  set_config_ini(glanceApiConf, 'DEFAULT', 'sql_connection', "mysql://glance:%s@%s/glance" %(databaseUserPassword,mySQLIP))
+  set_config_ini(glanceApiConf, 'DEFAULT', 'sql_connection', "mysql://glance:%s@%s/glance" %(databaseUserPassword,controlNodeIP))
   set_config_ini(glanceApiConf, 'DEFAULT', 'verbose', 'false')
   set_config_ini(glanceApiConf, 'DEFAULT', 'debug', 'false')
   set_config_ini(glanceApiConf, 'DEFAULT', 'rpc_backend', 'rabbit')
   set_config_ini(glanceApiConf, 'DEFAULT', 'rabbit_host', controlNodeIP)
-  set_config_ini(glanceApiConf, 'database', 'connection', "mysql://glance:%s@%s/glance" %(databaseUserPassword,mySQLIP))
+  set_config_ini(glanceApiConf, 'database', 'connection', "mysql://glance:%s@%s/glance" %(databaseUserPassword,controlNodeIP))
   #set_config_ini(glanceApiConf, 'DEFAULT', 'db_enforce_mysql_charset', 'false')
   set_config_ini(glanceApiConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
   set_config_ini(glanceApiConf, 'keystone_authtoken', 'auth_uri', "http://%s:5000" %controlNodeIP)
@@ -186,10 +180,10 @@ def install_glance(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP):
   set_config_ini(glanceApiPasteConf, 'filter:authtoken', 'admin_user', 'glance')
   set_config_ini(glanceApiPasteConf, 'filter:authtoken', 'admin_password', 'glance')
   glanceRegistryConf = '/etc/glance/glance-registry.conf'
-  set_config_ini(glanceRegistryConf, 'DEFAULT', 'sql_connection', "mysql://glance:%s@%s/glance" %(databaseUserPassword,mySQLIP))
+  set_config_ini(glanceRegistryConf, 'DEFAULT', 'sql_connection', "mysql://glance:%s@%s/glance" %(databaseUserPassword,controlNodeIP))
   set_config_ini(glanceRegistryConf, 'DEFAULT', 'verbose', 'false')
   set_config_ini(glanceRegistryConf, 'DEFAULT', 'debug', 'false')
-  set_config_ini(glanceRegistryConf, 'database', 'connection', "mysql://glance:%s@%s/glance" %(databaseUserPassword,mySQLIP))
+  set_config_ini(glanceRegistryConf, 'database', 'connection', "mysql://glance:%s@%s/glance" %(databaseUserPassword,controlNodeIP))
   set_config_ini(glanceRegistryConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
   set_config_ini(glanceRegistryConf, 'keystone_authtoken', 'auth_uri', "http://%s:5000" %controlNodeIP)
   set_config_ini(glanceRegistryConf, 'keystone_authtoken', 'auth_port', '35357')
@@ -225,17 +219,13 @@ def install_horizon():
 
 
 #######################################################################
-def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, apiIP):
+def install_keystone(databaseUserPassword, controlNodeIP, mySQLPassword):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure keystone, no database user password specified")
-  if not mySQLIP or len(str(mySQLIP)) == 0:
-    raise Exception("Unable to install/configure keystone, no MySQL IP specified")
   if not mySQLPassword or len(str(mySQLPassword)) == 0:
     raise Exception("Unable to install/configure keystone, no MySQL Password specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
     raise Exception("Unable to install/configure keystone, no control node IP specified")
-  if not apiIP or len(str(apiIP)) == 0:
-    raise Exception("Unable to install/configure keystone, no API IP specified")
   print ''
   log('Installing Keystone')
   run_db_command(mySQLPassword, "CREATE DATABASE IF NOT EXISTS keystone CHARACTER SET utf8 COLLATE utf8_general_ci;")
@@ -247,7 +237,7 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   set_config_ini(keystoneConf, 'DEFAULT', 'admin_token', 'ADMINTOKEN')
   set_config_ini(keystoneConf, 'DEFAULT', 'admin_port', 35357)
   set_config_ini(keystoneConf, 'DEFAULT', 'log_dir', '/var/log/keystone')
-  set_config_ini(keystoneConf, 'database', 'connection', "mysql://keystone:%s@%s/keystone" %(databaseUserPassword,mySQLIP))
+  set_config_ini(keystoneConf, 'database', 'connection', "mysql://keystone:%s@%s/keystone" %(databaseUserPassword,controlNodeIP))
   set_config_ini(keystoneConf, 'signing', 'token_format', 'UUID')
   run_command("service keystone restart" , True)
   time.sleep(10)
@@ -256,14 +246,14 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   # Configure users/endpoints/etc
   os.environ['SERVICE_TOKEN'] = 'ADMINTOKEN'
   os.environ['SERVICE_ENDPOINT'] = 'http://%s:35357/v2.0'% controlNodeIP
-  os.environ['no_proxy'] = "localhost,127.0.0.1,%s,%s" % (controlNodeIP,apiIP)
+  os.environ['no_proxy'] = "localhost,127.0.0.1,%s" % controlNodeIP
 
   # Little bit of dancing to handle if the admin user already exists or maybe does not yet
   adminrc = '/root/openstack-admin.rc'
   adminAuthArg = ''
   adminUserExists = os.path.exists(adminrc) and os.path.isfile(adminrc)
   if adminUserExists:
-    adminAuthArg = " --os-username admin --os-password secret --os-auth-url http://%s:5000/v2.0 " %apiIP
+    adminAuthArg = " --os-username admin --os-password secret --os-auth-url http://%s:5000/v2.0 " % controlNodeIP
 
   admin_tenant = run_command("keystone " + adminAuthArg + " tenant-list | grep admin | awk '{print $2}'")
   if not admin_tenant or not len(str(admin_tenant)) > 0:
@@ -277,8 +267,8 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   run_command("echo 'export OS_USERNAME=admin' >%s" %adminrc)
   run_command("echo 'export OS_PASSWORD=secret' >>%s" %adminrc)
   run_command("echo 'export OS_TENANT_NAME=admin' >>%s" %adminrc)
-  run_command("echo 'export OS_AUTH_URL=http://%s:5000/v2.0' >>%s" % (apiIP,adminrc))
-  adminAuthArg = " --os-username admin --os-password secret --os-auth-url http://%s:5000/v2.0 " %apiIP
+  run_command("echo 'export OS_AUTH_URL=http://%s:5000/v2.0' >>%s" % (controlNodeIP,adminrc))
+  adminAuthArg = " --os-username admin --os-password secret --os-auth-url http://%s:5000/v2.0 " % controlNodeIP
 
   admin_role = run_command("keystone " + adminAuthArg + " role-list| grep admin | awk '{print $2}'")
   if not admin_role or not len(str(admin_user)) > 0:
@@ -299,7 +289,7 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   keystone_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % keystone_service)
   if keystone_endpoint and len(str(keystone_endpoint)) > 0:
     run_command("keystone " + adminAuthArg + " endpoint-delete %s" % keystone_service)
-  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:5000/v2.0 --internalurl=http://%s:5000/v2.0 --adminurl=http://%s:35357/v2.0" % (keystone_service,apiIP,controlNodeIP,controlNodeIP))
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:5000/v2.0 --internalurl=http://%s:5000/v2.0 --adminurl=http://%s:35357/v2.0" % (keystone_service,controlNodeIP,controlNodeIP,controlNodeIP))
 
   glance_user = run_command("keystone " + adminAuthArg + " user-list | grep glance | awk '{print $2}'")
   if not glance_user or not len(str(glance_user)) > 0:
@@ -316,7 +306,7 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   glance_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % glance_service)
   if glance_endpoint and len(str(glance_endpoint)) > 0:
     run_command("keystone " + adminAuthArg + " endpoint-delete %s" % glance_service)
-  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:9292/v2 --internalurl=http://%s:9292/v2 --adminurl=http://%s:9292/v2" % (glance_service,apiIP,controlNodeIP,controlNodeIP))
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:9292/v2 --internalurl=http://%s:9292/v2 --adminurl=http://%s:9292/v2" % (glance_service,controlNodeIP,controlNodeIP,controlNodeIP))
 
   nova_user = run_command("keystone " + adminAuthArg + " user-list | grep nova | awk '{print $2}'")
   if not nova_user or not len(str(nova_user)) > 0:
@@ -333,7 +323,7 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   nova_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % nova_service)
   if nova_endpoint and len(str(nova_endpoint)) > 0:
     run_command("keystone " + adminAuthArg + " endpoint-delete %s" % nova_service)
-  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl='http://%s:8774/v2/$(tenant_id)s' --internalurl='http://%s:8774/v2/$(tenant_id)s' --adminurl='http://%s:8774/v2/$(tenant_id)s'" % (nova_service,apiIP,controlNodeIP,controlNodeIP))
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl='http://%s:8774/v2/$(tenant_id)s' --internalurl='http://%s:8774/v2/$(tenant_id)s' --adminurl='http://%s:8774/v2/$(tenant_id)s'" % (nova_service,controlNodeIP,controlNodeIP,controlNodeIP))
 
   neutron_user = run_command("keystone " + adminAuthArg + " user-list | grep neutron | awk '{print $2}'")
   if not neutron_user or not len(str(neutron_user)) > 0:
@@ -350,7 +340,7 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   neutron_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % neutron_service)
   if neutron_endpoint and len(str(neutron_endpoint)) > 0:
     run_command("keystone " + adminAuthArg + " endpoint-delete %s" % neutron_service)
-  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:9696/ --internalurl=http://%s:9696/ --adminurl=http://%s:9696/" % (neutron_service,apiIP,controlNodeIP,controlNodeIP))
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl=http://%s:9696/ --internalurl=http://%s:9696/ --adminurl=http://%s:9696/" % (neutron_service,controlNodeIP,controlNodeIP,controlNodeIP))
 
   cinder_user = run_command("keystone " + adminAuthArg + " user-list| grep cinder | awk '{print $2}'")
   if not cinder_user or not len(str(cinder_user)) > 0:
@@ -367,7 +357,7 @@ def install_keystone(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP
   cinder_endpoint = run_command("keystone " + adminAuthArg + " endpoint-list | grep %s | awk '{print $2}'" % cinder_service)
   if cinder_endpoint and len(str(cinder_endpoint)) > 0:
     run_command("keystone " + adminAuthArg + " endpoint-delete %s" % cinder_service)
-  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl 'http://%s:8776/v1/$(tenant_id)s' --internalurl='http://%s:8776/v1/$(tenant_id)s' --adminurl='http://%s:8776/v1/$(tenant_id)s'" % (cinder_service,apiIP,controlNodeIP,controlNodeIP))
+  run_command("keystone " + adminAuthArg + " endpoint-create --region region --service_id=%s --publicurl 'http://%s:8776/v1/$(tenant_id)s' --internalurl='http://%s:8776/v1/$(tenant_id)s' --adminurl='http://%s:8776/v1/$(tenant_id)s'" % (cinder_service,controlNodeIP,controlNodeIP,controlNodeIP))
 
   log('Completed Keystone')
 #######################################################################
@@ -397,23 +387,24 @@ def install_mysql(rootPassword):
 
 
 #######################################################################
-def install_neutron_on_compute_node(databaseUserPassword, mySQLIP,controlNodeIP):
+def install_neutron_on_compute_node(databaseUserPassword, controlNodeIP, computeNodeInstanceIP):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure neutron, no database user password specified")
-  if not mySQLIP or len(str(mySQLIP)) == 0:
-    raise Exception("Unable to install/configure neutron, no MySQL IP specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
     raise Exception("Unable to install/configure neutron, no control node IP specified")
+  if not computeNodeInstanceIP or len(str(computeNodeInstanceIP)) == 0:
+    raise Exception("Unable to install/configure neutron, no compute node instance IP specified")
   print ''
   log('Installing Neutron')
   run_command("apt-get install -y openvswitch-switch openvswitch-datapath-dkms" , True)
   run_command("ovs-vsctl --may-exist add-br br-int" , True)
-  run_command("ovs-vsctl --may-exist add-br br-eth1" , True)
-  run_command("ovs-vsctl --may-exist add-port br-eth1 eth1" , True)
+  #run_command("ovs-vsctl --may-exist add-br br-eth1" , True)
+  #run_command("ovs-vsctl --may-exist add-port br-eth1 eth1" , True)
   run_command("apt-get install -y neutron-plugin-openvswitch-agent" , True)
   log('Configuring Neutron')
   neutronConf = '/etc/neutron/neutron.conf'
-  set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'neutron.plugins.openvswitch.ovs_neutron_plugin.OVSNeutronPluginV2')
+  set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'ml2')
+  set_config_ini(neutronConf, 'DEFAULT', 'service_plugins', 'router')
   set_config_ini(neutronConf, 'DEFAULT', 'verbose', 'False')
   set_config_ini(neutronConf, 'DEFAULT', 'debug', 'False')
   set_config_ini(neutronConf, 'DEFAULT', 'auth_strategy', 'keystone')
@@ -437,11 +428,18 @@ def install_neutron_on_compute_node(databaseUserPassword, mySQLIP,controlNodeIP)
   set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_user', 'neutron')
   set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_password', 'neutron')
   neutronPluginConf = '/etc/neutron/plugins/ml2/ml2_conf.ini'
-  set_config_ini(neutronPluginConf, 'database', 'sql_connection', "mysql://neutron:%s@%s/neutron" %(databaseUserPassword,mySQLIP))
-  set_config_ini(neutronPluginConf, 'OVS', 'bridge_mappings', 'physnet1:br-eth1')
-  set_config_ini(neutronPluginConf, 'OVS', 'tenant_network_type', 'vlan')
-  set_config_ini(neutronPluginConf, 'OVS', 'network_vlan_ranges', 'physnet1:1000:2999')
-  set_config_ini(neutronPluginConf, 'OVS', 'integration_bridge', 'br-int')
+  set_config_ini(neutronPluginConf, 'database', 'sql_connection', "mysql://neutron:%s@%s/neutron" %(databaseUserPassword,controlNodeIP))
+  set_config_ini(neutronPluginConf, 'ml2', 'type_drivers', 'gre')
+  set_config_ini(neutronPluginConf, 'ml2', 'tenant_network_types', 'gre')
+  set_config_ini(neutronPluginConf, 'ml2', 'mechanism_drivers', 'openvswitch')
+  set_config_ini(neutronPluginConf, 'ml2_type_gre', 'tunnel_id_ranges', '1:1000')
+  set_config_ini(neutronPluginConf, 'ovs', 'local_ip', computeNodeInstanceIP)
+  set_config_ini(neutronPluginConf, 'ovs', 'tunnel_type', 'gre')
+  set_config_ini(neutronPluginConf, 'ovs', 'enable_tunneling', 'True')
+  #set_config_ini(neutronPluginConf, 'OVS', 'bridge_mappings', 'physnet1:br-eth1')
+  #set_config_ini(neutronPluginConf, 'OVS', 'tenant_network_type', 'vlan')
+  #set_config_ini(neutronPluginConf, 'OVS', 'network_vlan_ranges', 'physnet1:1000:2999')
+  #set_config_ini(neutronPluginConf, 'OVS', 'integration_bridge', 'br-int')
   set_config_ini(neutronPluginConf, 'securitygroup', 'firewall_driver', 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver')
   set_config_ini(neutronPluginConf, 'securitygroup', 'enable_security_group', 'True')
   run_command("service openvswitch-switch restart", True)
@@ -451,11 +449,9 @@ def install_neutron_on_compute_node(databaseUserPassword, mySQLIP,controlNodeIP)
 
 
 #######################################################################
-def install_neutron_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP):
+def install_neutron_on_control_node(databaseUserPassword, controlNodeIP, mySQLPassword):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure neutron, no database user password specified")
-  if not mySQLIP or len(str(mySQLIP)) == 0:
-    raise Exception("Unable to install/configure neutron, no MySQL IP specified")
   if not mySQLPassword or len(str(mySQLPassword)) == 0:
     raise Exception("Unable to install/configure neutron, no MySQL Password specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
@@ -469,8 +465,8 @@ def install_neutron_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword
   log('Configuring Neutron')
   service_tenant = run_command("keystone tenant-list | grep service | awk '{print $2}'")
   neutronConf = '/etc/neutron/neutron.conf'
-  set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'neutron.plugins.ml2.plugin.Ml2Plugin')
-  set_config_ini(neutronConf, 'DEFAULT', 'service_plugins', 'neutron.services.l3_router.l3_router_plugin.L3RouterPlugin')
+  set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'ml2')
+  set_config_ini(neutronConf, 'DEFAULT', 'service_plugins', 'router')
   set_config_ini(neutronConf, 'DEFAULT', 'verbose', 'False')
   set_config_ini(neutronConf, 'DEFAULT', 'debug', 'False')
   set_config_ini(neutronConf, 'DEFAULT', 'auth_strategy', 'keystone')
@@ -486,7 +482,7 @@ def install_neutron_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword
   set_config_ini(neutronConf, 'DEFAULT', 'nova_admin_password', 'nova')
   set_config_ini(neutronConf, 'DEFAULT', 'nova_admin_tenant_id', service_tenant)
   set_config_ini(neutronConf, 'DEFAULT', 'nova_admin_auth_url', "http://" + controlNodeIP + ":5000/v2.0/")
-  set_config_ini(neutronConf, 'database', 'connection', "mysql://neutron:%s@%s/neutron" %(databaseUserPassword,mySQLIP))
+  set_config_ini(neutronConf, 'database', 'connection', "mysql://neutron:%s@%s/neutron" %(databaseUserPassword,controlNodeIP))
   set_config_ini(neutronConf, 'keystone_authtoken', 'auth_uri', "http://" + controlNodeIP + ":5000")
   set_config_ini(neutronConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
   set_config_ini(neutronConf, 'keystone_authtoken', 'auth_protocol', 'http')
@@ -502,36 +498,40 @@ def install_neutron_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword
   set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_user', 'neutron')
   set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_password', 'neutron')
   neutronPluginConf = '/etc/neutron/plugins/ml2/ml2_conf.ini'
-  set_config_ini(neutronPluginConf, 'ml2', 'type_drivers', 'vlan,vxlan')
-  set_config_ini(neutronPluginConf, 'ml2', 'tenant_network_types', 'vlan,vxlan')
-  set_config_ini(neutronPluginConf, 'ml2', 'mechanism_drivers', 'openvswitch,linuxbridge')
-  set_config_ini(neutronPluginConf, 'ml2_type_vlan', 'network_vlan_ranges', 'physnet1:2000:2999')
-  set_config_ini(neutronPluginConf, 'ml2_type_vxlan', 'vni_ranges', '500:999')
+  set_config_ini(neutronPluginConf, 'ml2', 'type_drivers', 'gre')
+  set_config_ini(neutronPluginConf, 'ml2', 'tenant_network_types', 'gre')
+  set_config_ini(neutronPluginConf, 'ml2', 'mechanism_drivers', 'openvswitch')
+  set_config_ini(neutronPluginConf, 'ml2_type_gre', 'tunnel_id_ranges', '1:1000')
   set_config_ini(neutronPluginConf, 'securitygroup', 'firewall_driver', 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver')
+  set_config_ini(neutronPluginConf, 'securitygroup', 'enable_security_group', 'True')
   run_command("service neutron-server restart", True)
   log('Completed Neutron')
 #######################################################################
 
 
 #######################################################################
-def install_neutron_on_network_node(databaseUserPassword, mySQLIP,controlNodeIP):
+def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, networkNodeInstanceIP, networkNodeExternalNetworkInterface):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure neutron, no database user password specified")
-  if not mySQLIP or len(str(mySQLIP)) == 0:
-    raise Exception("Unable to install/configure neutron, no MySQL IP specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
     raise Exception("Unable to install/configure neutron, no control node IP specified")
+  if not networkNodeInstanceIP or len(str(networkNodeInstanceIP)) == 0:
+    raise Exception("Unable to install/configure neutron, no network node instance IP specified")
+  if not networkNodeExternalNetworkInterface or len(str(networkNodeExternalNetworkInterface)) == 0:
+    raise Exception("Unable to install/configure neutron, no network node external network interface specified")
   print ''
   log('Installing Neutron')
   run_command("apt-get install -y openvswitch-switch openvswitch-datapath-dkms" , True)
   run_command("ovs-vsctl --may-exist add-br br-int" , True)
-  run_command("ovs-vsctl --may-exist add-br br-eth2" , True)
-  run_command("ovs-vsctl --may-exist add-port br-eth2 eth2" , True)
+  #run_command("ovs-vsctl --may-exist add-br br-eth2" , True)
+  #run_command("ovs-vsctl --may-exist add-port br-eth2 eth2" , True)
   run_command("ovs-vsctl --may-exist add-br br-ex" , True)
+  run_command("ovs-vsctl --may-exist add-port br-ex " + networkNodeExternalNetworkInterface , True)
   run_command("apt-get install -y neutron-plugin-openvswitch-agent neutron-dhcp-agent neutron-l3-agent neutron-metadata-agent" , True)
   log('Configuring Neutron')
   neutronConf = '/etc/neutron/neutron.conf'
-  set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'neutron.plugins.openvswitch.ovs_neutron_plugin.OVSNeutronPluginV2')
+  set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'ml2')
+  set_config_ini(neutronConf, 'DEFAULT', 'service_plugins', 'router')
   set_config_ini(neutronConf, 'DEFAULT', 'verbose', 'False')
   set_config_ini(neutronConf, 'DEFAULT', 'debug', 'False')
   set_config_ini(neutronConf, 'DEFAULT', 'auth_strategy', 'keystone')
@@ -547,17 +547,27 @@ def install_neutron_on_network_node(databaseUserPassword, mySQLIP,controlNodeIP)
   set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_user', 'neutron')
   set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_password', 'neutron')
   neutronPluginConf = '/etc/neutron/plugins/ml2/ml2_conf.ini'
-  set_config_ini(neutronPluginConf, 'database', 'sql_connection', "mysql://neutron:%s@%s/neutron" %(databaseUserPassword,mySQLIP))
-  set_config_ini(neutronPluginConf, 'OVS', 'bridge_mappings', 'physnet1:br-eth2')
-  set_config_ini(neutronPluginConf, 'OVS', 'tenant_network_type', 'vlan')
-  set_config_ini(neutronPluginConf, 'OVS', 'network_vlan_ranges', 'physnet1:1000:2999')
-  set_config_ini(neutronPluginConf, 'OVS', 'integration_bridge', 'br-int')
+  set_config_ini(neutronPluginConf, 'ml2', 'type_drivers', 'gre')
+  set_config_ini(neutronPluginConf, 'ml2', 'tenant_network_types', 'gre')
+  set_config_ini(neutronPluginConf, 'ml2', 'mechanism_drivers', 'openvswitch')
+  set_config_ini(neutronPluginConf, 'ml2_type_gre', 'tunnel_id_ranges', '1:1000')
+  set_config_ini(neutronPluginConf, 'database', 'sql_connection', "mysql://neutron:%s@%s/neutron" %(databaseUserPassword,controlNodeIP))
+  set_config_ini(neutronPluginConf, 'ovs', 'local_ip', networkNodeInstanceIP)
+  set_config_ini(neutronPluginConf, 'ovs', 'tunnel_type', 'gre')
+  set_config_ini(neutronPluginConf, 'ovs', 'enable_tunneling', 'True')
+  #et_config_ini(neutronPluginConf, 'OVS', 'bridge_mappings', 'physnet1:br-eth2')
+  #et_config_ini(neutronPluginConf, 'OVS', 'tenant_network_type', 'vlan')
+  #et_config_ini(neutronPluginConf, 'OVS', 'network_vlan_ranges', 'physnet1:1000:2999')
+  #et_config_ini(neutronPluginConf, 'OVS', 'integration_bridge', 'br-int')
   set_config_ini(neutronPluginConf, 'securitygroup', 'firewall_driver', 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver')
+  set_config_ini(neutronPluginConf, 'securitygroup', 'enable_security_group', 'True')
   neutronDhcpAgentConf = '/etc/neutron/dhcp_agent.ini'
   set_config_ini(neutronDhcpAgentConf, 'DEFAULT', 'interface_driver', 'neutron.agent.linux.interface.OVSInterfaceDriver')
   set_config_ini(neutronDhcpAgentConf, 'DEFAULT', 'dhcp_driver', 'neutron.agent.linux.dhcp.Dnsmasq')
+  set_config_ini(neutronDhcpAgentConf, 'DEFAULT', 'use_namespaces', 'True')
   neutronL3AgentConf = '/etc/neutron/l3_agent.ini'
   set_config_ini(neutronL3AgentConf, 'DEFAULT', 'interface_driver', 'neutron.agent.linux.interface.OVSInterfaceDriver')
+  set_config_ini(neutronL3AgentConf, 'DEFAULT', 'use_namespaces', 'True')
   run_command("service neutron-plugin-openvswitch-agent restart", True)
   run_command("service neutron-dhcp-agent restart", True)
   run_command("service neutron-l3-agent restart", True)
@@ -566,15 +576,11 @@ def install_neutron_on_network_node(databaseUserPassword, mySQLIP,controlNodeIP)
 
 
 #######################################################################
-def install_nova_on_compute_node(databaseUserPassword, mySQLIP, controlNodeIP, apiIP, computeNodeIP):
+def install_nova_on_compute_node(databaseUserPassword, controlNodeIP, computeNodeIP):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure nova, no database user password specified")
-  if not mySQLIP or len(str(mySQLIP)) == 0:
-    raise Exception("Unable to install/configure nova, no MySQL IP specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
     raise Exception("Unable to install/configure nova, no control node IP specified")
-  if not apiIP or len(str(apiIP)) == 0:
-    raise Exception("Unable to install/configure nova, no API IP specified")
   if not computeNodeIP or len(str(computeNodeIP)) == 0:
     raise Exception("Unable to install/configure nova, no compute node IP specified")
   print ''
@@ -600,7 +606,7 @@ def install_nova_on_compute_node(databaseUserPassword, mySQLIP, controlNodeIP, a
   set_config_ini(novaConf, 'DEFAULT', 'debug', 'False')
   set_config_ini(novaConf, 'DEFAULT', 'rabbit_host', controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'rpc_backend', 'rabbit')
-  set_config_ini(novaConf, 'DEFAULT', 'sql_connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,mySQLIP))
+  set_config_ini(novaConf, 'DEFAULT', 'sql_connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,controlNodeIP))
   set_config_ini(novaConf, 'DEFAULT', 'glance_host', controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'glance_api_servers', "%s:9292" %controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'compute_driver', 'libvirt.LibvirtDriver')
@@ -608,9 +614,10 @@ def install_nova_on_compute_node(databaseUserPassword, mySQLIP, controlNodeIP, a
   set_config_ini(novaConf, 'DEFAULT', 'firewall_driver', 'nova.virt.firewall.NoopFirewallDriver')
   set_config_ini(novaConf, 'DEFAULT', 'security_group_api', 'neutron')
   set_config_ini(novaConf, 'DEFAULT', 'libvirt_vif_driver', 'nova.virt.libvirt.vif.LibvirtGenericVIFDriver')
+  set_config_ini(novaConf, 'DEFAULT', 'linuxnet_interface_driver', 'nova.network.linux_net.LinuxOVSInterfaceDriver')
   set_config_ini(novaConf, 'DEFAULT', 'auth_strategy', 'keystone')
   set_config_ini(novaConf, 'DEFAULT', 'novnc_enabled', 'true')
-  set_config_ini(novaConf, 'DEFAULT', 'novncproxy_base_url', "http://%s:6080/vnc_auto.html" %apiIP)
+  set_config_ini(novaConf, 'DEFAULT', 'novncproxy_base_url', "http://%s:6080/vnc_auto.html" %controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'novncproxy_port', '6080')
   set_config_ini(novaConf, 'DEFAULT', 'vncserver_proxyclient_address', computeNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'my_ip', computeNodeIP)
@@ -622,7 +629,7 @@ def install_nova_on_compute_node(databaseUserPassword, mySQLIP, controlNodeIP, a
   set_config_ini(novaConf, 'DEFAULT', 'neutron_admin_auth_url', "http://%s:35357/v2.0/" %controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'neutron_auth_strategy', 'keystone')
   set_config_ini(novaConf, 'DEFAULT', 'neutron_url', "http://%s:9696/" %controlNodeIP)
-  set_config_ini(novaConf, 'database', 'connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,mySQLIP))
+  set_config_ini(novaConf, 'database', 'connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,controlNodeIP))
   set_config_ini(novaConf, 'keystone_authtoken', 'auth_uri', "http://%s:5000" %controlNodeIP)
   set_config_ini(novaConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
   set_config_ini(novaConf, 'keystone_authtoken', 'auth_port', '35357')
@@ -660,17 +667,13 @@ def install_nova_on_compute_node(databaseUserPassword, mySQLIP, controlNodeIP, a
 
 
 #######################################################################
-def install_nova_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword, controlNodeIP, apiIP):
+def install_nova_on_control_node(databaseUserPassword, controlNodeIP, mySQLPassword):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure nova, no database user password specified")
-  if not mySQLIP or len(str(mySQLIP)) == 0:
-    raise Exception("Unable to install/configure nova, no MySQL IP specified")
   if not mySQLPassword or len(str(mySQLPassword)) == 0:
     raise Exception("Unable to install/configure nova, no MySQL Password specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
     raise Exception("Unable to install/configure nova, no control node IP specified")
-  if not apiIP or len(str(apiIP)) == 0:
-    raise Exception("Unable to install/configure nova, no API IP specified")
   print ''
   log('Installing Nova')
   run_db_command(mySQLPassword, "CREATE DATABASE IF NOT EXISTS nova CHARACTER SET utf8 COLLATE utf8_general_ci;")
@@ -686,18 +689,18 @@ def install_nova_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword, c
   set_config_ini(novaConf, 'DEFAULT', 'debug', 'False')
   set_config_ini(novaConf, 'DEFAULT', 'rabbit_host', controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'rpc_backend', 'rabbit')
-  set_config_ini(novaConf, 'DEFAULT', 'sql_connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,mySQLIP))
+  set_config_ini(novaConf, 'DEFAULT', 'sql_connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,controlNodeIP))
   set_config_ini(novaConf, 'DEFAULT', 'glance_api_servers', "%s:9292" %controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'image_service', 'nova.image.glance.GlanceImageService')
   set_config_ini(novaConf, 'DEFAULT', 'dhcpbridge_flagfile', '/etc/nova/nova.conf')
   set_config_ini(novaConf, 'DEFAULT', 'auth_strategy', 'keystone')
   set_config_ini(novaConf, 'DEFAULT', 'novnc_enabled', 'true')
   set_config_ini(novaConf, 'DEFAULT', 'nova_url', "http://%s:8774/v2/" %controlNodeIP)
-  set_config_ini(novaConf, 'DEFAULT', 'novncproxy_base_url', "http://%s:6080/vnc_auto.html" %apiIP)
+  set_config_ini(novaConf, 'DEFAULT', 'novncproxy_base_url', "http://%s:6080/vnc_auto.html" %controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'my_ip', controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'vncserver_proxyclient_address', controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'novncproxy_port', '6080')
-  set_config_ini(novaConf, 'DEFAULT', 'vncserver_listen', '0.0.0.0')
+  set_config_ini(novaConf, 'DEFAULT', 'vncserver_listen', controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'network_api_class', 'nova.network.neutronv2.api.API')
   set_config_ini(novaConf, 'DEFAULT', 'neutron_admin_username', 'neutron')
   set_config_ini(novaConf, 'DEFAULT', 'neutron_admin_password', 'neutron')
@@ -706,13 +709,14 @@ def install_nova_on_control_node(databaseUserPassword, mySQLIP, mySQLPassword, c
   set_config_ini(novaConf, 'DEFAULT', 'neutron_auth_strategy', 'keystone')
   set_config_ini(novaConf, 'DEFAULT', 'neutron_url', "http://%s:9696/" %controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'firewall_driver', 'nova.virt.firewall.NoopFirewallDriver')
+  set_config_ini(novaConf, 'DEFAULT', 'linuxnet_interface_driver', 'nova.network.linux_net.LinuxOVSInterfaceDriver')
   set_config_ini(novaConf, 'DEFAULT', 'security_group_api', 'neutron')
   set_config_ini(novaConf, 'DEFAULT', 'service_neutron_metadata_proxy', 'True')
   set_config_ini(novaConf, 'DEFAULT', 'neutron_metadata_proxy_shared_secret', 'helloOpenStack')
   set_config_ini(novaConf, 'DEFAULT', 'volume_api_class', 'nova.volume.cinder.API')
   set_config_ini(novaConf, 'DEFAULT', 'osapi_volume_listen_port', '5900')
   set_config_ini(novaConf, 'DEFAULT', 'compute_driver', 'libvirt.LibvirtDriver')
-  set_config_ini(novaConf, 'database', 'connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,mySQLIP))
+  set_config_ini(novaConf, 'database', 'connection', "mysql://nova:%s@%s/nova" %(databaseUserPassword,controlNodeIP))
   set_config_ini(novaConf, 'keystone_authtoken', 'auth_uri', "http://%s:5000" %controlNodeIP) 
   set_config_ini(novaConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
   set_config_ini(novaConf, 'keystone_authtoken', 'auth_port', '35357')
