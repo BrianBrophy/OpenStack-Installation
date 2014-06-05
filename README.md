@@ -462,7 +462,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 - List the images
 
-<pre>nova image-list<pre>
+<pre>nova image-list</pre>
 
 - Your IDs will differ, but here is an example
 
