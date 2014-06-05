@@ -295,6 +295,10 @@ iface eth2 inet dhcp
 
 <pre>glance image-create --name 'CirrOS 0.3.2 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://download.cirros-cloud.net/0.3.2/cirros-0.3.2-x86_64-disk.img</pre>
 
+- Load Ubuntu 12.04 Image
+
+<pre>glance image-create --name 'Ubuntu 12.04 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://uec-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img</pre>
+
 - Confirm by listing Glance images
 
 <pre>glance image-list</pre>
@@ -436,3 +440,76 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 <pre>neutron router-gateway-set demo-router ext-net</pre>
 
 - If you login to the Horizon Dashboard as the tenant user, you will be able to see a visual representation under Networks, Network Topology
+
+
+## Launching Instances
+- On a node with the OpenStack clients installed, login to your user account (ie, brian is shown here)
+- Source the tenant .rc file
+
+<pre>source openstack-brian.rc</pre>
+
+- Generate an SSH key pair
+
+<pre>ssh-keygen</pre>
+
+- Add the key pair to Nova
+
+<pre>nova keypair-add --pub-key ~/.ssh/id_rsa.pub brian-key</pre>
+
+- Confirm by listing the key pairs
+
+<pre>nova keypair-list</pre>
+
+- List the images
+
+<pre>nova image-list<pre>
+
+- Your IDs will differ, but here is an example
+
+<pre>
++--------------------------------------+---------------------+--------+--------+
+| ID                                   | Name                | Status | Server |
++--------------------------------------+---------------------+--------+--------+
+| 8347b57f-4080-4eb7-8133-46b7e34ff9ea | CirrOS 0.3.2 x86_64 | ACTIVE |        |
+| fa428499-b375-4f42-bdf2-6754c0e9440b | Ubuntu 12.04 x86_64 | ACTIVE |        |
++--------------------------------------+---------------------+--------+--------+
+</pre>
+
+- List the networks
+
+<pre>neutron net-list</pre>
+
+- Again, IDs will vary, but in our environment we have
+
+<pre>
++--------------------------------------+----------+-------------------------------------------------------+
+| id                                   | name     | subnets                                               |
++--------------------------------------+----------+-------------------------------------------------------+
+| 851b9707-1dbd-43c3-bae2-f10773cce808 | ext-net  | d66bab2c-8b05-4eb9-924a-41653c458018 192.168.100.0/24 |
+| b657514b-1d0d-466b-97f8-19e35d4c7bfe | demo-net | 942213a1-1b4a-4de3-94d2-1dcead1052d0 192.168.150.0/24 |
++--------------------------------------+----------+-------------------------------------------------------+
+</pre>
+
+- List the security groups
+
+<pre>nova secgroup-list</pre>
+
+- IDs will be different in your environment, but here we see
+
+<pre>
++--------------------------------------+---------+-------------+
+| Id                                   | Name    | Description |
++--------------------------------------+---------+-------------+
+| 7ee7fd2a-6b59-48b5-b730-c3fced70c473 | default | default     |
+| 37bbd3cd-1612-4929-a211-bfd81e84fed4 | demo    | Ping, SSH   |
++--------------------------------------+---------+-------------+
+</pre>
+
+- Now that we have the required info, we can launch an instance (NIC Net ID is the ID of our demo-net network, and note that for Ubuntu we need at least a m1.small flavor)
+
+<pre>nova boot --flavor m1.small --image 'Ubuntu 12.04 x86_64' --nic net-id=b657514b-1d0d-466b-97f8-19e35d4c7bfe --security-group default --key-name brian-key ubuntu-demo-1</pre>
+
+- Confirm by listing the nova instances
+
+<pre>nova list<pre>
+
