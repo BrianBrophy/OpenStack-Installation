@@ -511,5 +511,5 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 - Confirm by listing the nova instances
 
-<pre>nova list<pre>
+<pre>nova list</pre>
 
