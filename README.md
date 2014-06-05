@@ -375,9 +375,77 @@ iface eth2 inet dhcp
 ## Adding Users
 - Create the user
 
-<pre>keystone user-create --name brian --pass password --enabled true</pre>
+<pre>keystone user-create --name brian --pass password --enabled true --tenant 2c708f8442ed437d8b8cb5a9c1bfb51c</pre>
 
 - Confirm by listing users
 
 <pre>keystone user-list</pre>
 
+
+## Creating External Network
+- Create a network with an external router
+
+<pre>neutron net-create ext-net --shared --router:external=True</pre>
+
+- Confirm by listing the networks
+
+<pre>neutron net-list</pre>
+
+## Creating Subnet on External Network
+- We configured our VirtualBox host-only network to access the VMs as 10.10.10.0/24
+- We will take part of this subnet, and use it for an allocation pool on the external subnet
+
+<pre>neutron subnet-create ext-net --name ext-subnet --allocation-pool start=10.10.10.101,end=10.10.10.200 --disable-dhcp --gateway 10.10.10.1 10.10.10.0/24</pre>
+
+- Confirm by listing subnets
+
+<pre>neutron subnet-list</pre>
+
+
+## Creating Tenant Network
+- Setup a tenant .rc file ... based on the tenant you configured
+
+<pre>
+export OS_USERNAME=brian
+export OS_PASSWORD=password
+export OS_TENANT_NAME=demo
+export OS_AUTH_URL=http://192.168.100.41:5000/v2.0
+</pre>
+
+- Source the tenant .rc file
+
+<pre>source openstack-brian.rc</pre>
+
+- Create tenant network
+
+<pre>neutron net-create demo-net</pre>
+
+- Confirm by listing networks
+
+<pre>neutron net-list</pre>
+
+- Create tenant subnet
+
+<pre>neutron subnet-create demo-net --name demo-subnet --gateway 192.168.150.1 192.168.150.0/24</pre>
+
+- Confirm by listing tenant subnets
+
+<pre>neutron subnet-list</pre>
+
+- Create tenant network router
+
+<pre>neutron router-create demo-router</pre>
+
+- Confirm by listing routers
+
+<pre>neutron router-list</pre>
+
+- Add the subnet to the router
+
+<pre>neutron router-interface-add demo-router demo-subnet</pre>
+
+- Set gateway on router for external network
+
+<pre>neutron router-gateway-set demo-router ext-net</pre>
+
+- If you login to the Horizon Dashboard as the tenant user, you will be able to see a visual representation under Networks, Network Topology
