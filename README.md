@@ -513,3 +513,19 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 <pre>nova list</pre>
 
+- Get/Create a floating IP
+
+<pre>nova floating-ip-create ext-net</pre>
+
+- Confirm by listing the floating IPs
+
+<pre>nova floating-ip-list</pre>
+
+- Associate a floating IP with the instance
+
+<pre>nova floating-ip-associate ubuntu-demo-1 192.168.100.5</pre>
+
+- Confirm by listing the nova instances
+
+<pre>nova list</pre>
+
