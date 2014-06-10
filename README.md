@@ -54,7 +54,7 @@ The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neut
 
 
 ### Network Configuration
-- You can assign any address appropriate for the network (.21s are shown, but you could just as easily use .11s).  It is recomended you choose some number low in the network range in case you want to use the other half of the range for compute instances.
+- You can assign any address appropriate for the network (.21s are shown, but you could just as easily use .11s).
 - As root, edit /etc/network/interfaces to configure networking (be sure to check the MAC addresses as reported in the VM network configuration in VirtualBox with the OS representation as reported by ifconfig to ensure correct assignments)
 
 <pre>
@@ -136,7 +136,7 @@ The OpenStack Network node will run NTP and Neutron.
 
 
 ### Network Configuration
-- You can assign any address appropriate for the network (.22s are shown, but you could just as easily use .12s).  It is recomended you choose some number low in the network range in case you want to use the other half of the range for compute instances.
+- You can assign any address appropriate for the network (.22s are shown, but you could just as easily use .12s).
 - As root, edit /etc/network/interfaces to configure networking (be sure to check the MAC addresses as reported in the VM network configuration in VirtualBox with the OS representation as reported by ifconfig to ensure correct assignments)
 
 <pre>
@@ -232,7 +232,7 @@ The OpenStack Compute node will run NTP, Nova, and Neutron.
 
 
 ### Network Configuration
-- You can assign any address appropriate for the network (.23s are shown, but you could just as easily use .13s).  It is recomended you choose some number low in the network range in case you want to use the other half of the range for compute instances.
+- You can assign any address appropriate for the network (.23s are shown, but you could just as easily use .13s).
 - As root, edit /etc/network/interfaces to configure networking (be sure to check the MAC addresses as reported in the VM network configuration in VirtualBox with the OS representation as reported by ifconfig to ensure correct assignments)
 
 <pre>
