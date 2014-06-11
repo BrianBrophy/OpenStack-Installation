@@ -421,7 +421,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 - Create tenant subnet (this subnet is hidden behind the Network node, accessible only by the instance VMs)
 
-<pre>neutron subnet-create demo-net --name demo-subnet --gateway 192.168.150.1 192.168.150.0/24</pre>
+<pre>neutron subnet-create demo-net --name demo-subnet --dns-nameserver 8.8.8.8 --gateway 192.168.150.1 192.168.150.0/24</pre>
 
 - Confirm by listing tenant subnets
 
