@@ -377,18 +377,6 @@ iface eth2 inet dhcp
 <pre>keystone user-list</pre>
 
 
-## Updating Default Security Group
-- Let's allow SSH (tcp 22) and PING (icmp) inbound from anywhere into our VM/compute instances
-
-<pre>nova secgroup-add-rule default tcp 22 22 0.0.0.0/0</pre>
-
-<pre>nova secgroup-add-rule default icmp -1 -1 0.0.0.0/0</pre>
-
-- Confirm by listing the rules for the default security group
-
-<pre>nova secgroup-list-rules default</pre>
-
-
 ## Creating External Network
 - Create a network with an external router
 
@@ -456,6 +444,18 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 <pre>neutron router-gateway-set demo-router ext-net</pre>
 
 - If you login to the Horizon Dashboard as the tenant user, you will be able to see a visual representation under Networks, Network Topology
+
+
+## Updating Default Security Group
+- Let's allow SSH (tcp 22) and PING (icmp) inbound from anywhere into our VM/compute instances
+
+<pre>nova secgroup-add-rule default tcp 22 22 0.0.0.0/0</pre>
+
+<pre>nova secgroup-add-rule default icmp -1 -1 0.0.0.0/0</pre>
+
+- Confirm by listing the rules for the default security group
+
+<pre>nova secgroup-list-rules default</pre>
 
 
 ## Launching Instances
