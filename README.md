@@ -377,6 +377,17 @@ iface eth2 inet dhcp
 <pre>keystone user-list</pre>
 
 
+## Updating Default Security Group
+- Let's allow SSH (tcp 22) and PING (icmp) inbound from anywhere into our VM/compute instances
+
+<pre>nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
+nova secgroup-add-rule default icmp -1 -1 0.0.0.0/0</pre>
+
+- Confirm by listing the rules for the default security group
+
+<pre>nova secgroup-list-rules default</pre>
+
+
 ## Creating External Network
 - Create a network with an external router
 
