@@ -537,6 +537,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 <pre>nova floating-ip-list</pre>
 
+- Wait until the VM is running, and has networking running .... you can use the "nova list" command to see the Power State and Network (if you do not wait, the floating IP assignment may not take effect, in which case you can just disaassociate and then (re) associate the floating IP again)
 - Associate a floating IP with the instance
 
 <pre>nova floating-ip-associate ubuntu-demo-1 192.168.100.5</pre>
@@ -545,3 +546,12 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 <pre>nova list</pre>
 
+- Now, you should be able to SSH into the instance.  For Ubuntu, the ubuntu user has been configured with the SSH key pair you specified when launching the instance.
+- From Linux, you can connect to the assigned floating IP using the SSH key identity file
+
+<pre>ssh -i ~/.ssh/id_rsa ubuntu@192.168.100.3</pre>
+
+- From Windows, you can use PuTTY's puttygen executable to convert the private key to a PuTTY private key (*.ppk) file and then within your PuTTY session, be sure to configure Connection - Data - Auto login username as well as Connection - SSH - Auth - Private key file for authentication and then you should be able to SSH to the floating IP.
+
+- If testing the CirrOS image, the SSH key pair is setup for the cirros user
+- If testing the CentOS image, the SSH key pair is setup for the root user
