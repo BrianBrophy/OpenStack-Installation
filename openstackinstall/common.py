@@ -562,6 +562,7 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   set_config_ini(neutronMetadataAgentConf, 'DEFAULT', 'nova_metadata_ip', controlNodeIP)
   set_config_ini(neutronMetadataAgentConf, 'DEFAULT', 'nova_metadata_port', '8775')
   set_config_ini(neutronMetadataAgentConf, 'DEFAULT', 'metadata_proxy_shared_secret', 'helloOpenStack')
+  set_config_ini(neutronMetadataAgentConf, 'DEFAULT', 'debug', 'True')
   neutronPluginConf = '/etc/neutron/plugins/ml2/ml2_conf.ini'
   set_config_ini(neutronPluginConf, 'ml2', 'type_drivers', 'gre')
   set_config_ini(neutronPluginConf, 'ml2', 'tenant_network_types', 'gre')
@@ -587,6 +588,7 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   run_command("service neutron-plugin-openvswitch-agent restart", True)
   run_command("service neutron-dhcp-agent restart", True)
   run_command("service neutron-l3-agent restart", True)
+  run_command("service neutron-metadata-agent restart", True)
   log('Completed Neutron')
 #######################################################################
 
