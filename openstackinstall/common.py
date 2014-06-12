@@ -21,7 +21,7 @@ def base_system_update():
   run_command("apt-get clean" , True)
   run_command("apt-get autoclean -y" , True)
   run_command("apt-get update -y" , True)
-  run_command("apt-get install -y ubuntu-cloud-keyring python-setuptools python-iniparse python-psutil python-software-properties", True)
+  run_command("apt-get install -y ubuntu-cloud-keyring python-setuptools python-iniparse python-psutil python-software-properties ethtool", True)
   delete_file("/etc/apt/sources.list.d/icehouse.list")
   run_command("echo deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/icehouse main >> /etc/apt/sources.list.d/icehouse.list")
   run_command("apt-get update -y", True)
