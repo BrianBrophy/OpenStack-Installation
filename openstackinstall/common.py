@@ -585,6 +585,13 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   neutronL3AgentConf = '/etc/neutron/l3_agent.ini'
   set_config_ini(neutronL3AgentConf, 'DEFAULT', 'interface_driver', 'neutron.agent.linux.interface.OVSInterfaceDriver')
   set_config_ini(neutronL3AgentConf, 'DEFAULT', 'use_namespaces', 'True')
+  # iptables rule to get VM/Instance to Internet working
+  # /etc/rc.local so rule is set on boot
+  iptablesRcLocalCommand = "grep -e '^iptables\s*\-t\s*nat\s*\-A\s*POSTROUTING\s\-s\s*192\.168\.100\.0/24\s*\-j\s*SNAT\s*\-\-to\-source' /etc/rc.local; if [ $? -eq 0 ] ; then sed -i 's/^iptables\s*\-t\s*nat\s*\-A\s*POSTROUTING\s\-s\s*192\.168\.100\.0\/24\s*\-j\s*SNAT\s*\-\-to\-source.*/iptables \-t nat \-A POSTROUTING \-s 192\.168\.100\.0\/24 \-j SNAT \-\-to\-source \`ip \-4 \-o addr show eth3 \| sed " + '"' + "s\/\.*inet\\s*\/\/" + '"' + " \| cut \-f1 \-d\/\`/' /etc/rc.local; else awk '/^exit/{print " + '"' + "iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -j SNAT --to-source `ip -4 -o addr show eth3 | sed 's/.*inet\s*//' | cut -f1 -d/`" + '"' + "}1' /etc/rc.local >/etc/rc.local.new; mv /etc/rc.local.new /etc/rc.local; fi;"
+  run_command(iptablesRcLocalCommand)
+  # and run it now to get it active now
+  iptablesCommand = "iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -j SNAT --to-source `ip -4 -o addr show eth3 | sed " + '"' + "s/.*inets*//" + '"' + " | cut -f1 -d/`"
+  run_command(iptablesCommand)
   run_command("service neutron-plugin-openvswitch-agent restart", True)
   run_command("service neutron-dhcp-agent restart", True)
   run_command("service neutron-l3-agent restart", True)
