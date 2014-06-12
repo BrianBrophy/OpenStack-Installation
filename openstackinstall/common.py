@@ -510,7 +510,7 @@ def install_neutron_on_control_node(databaseUserPassword, controlNodeIP, mySQLPa
 
 
 #######################################################################
-def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, networkNodeInstanceIP, networkNodeExternalNetworkInterface):
+def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, networkNodeInstanceIP, networkNodeExternalNetworkInterface, internetNetworkInterface, providerExternalNetworkCIDR):
   if not databaseUserPassword or len(str(databaseUserPassword)) == 0:
     raise Exception("Unable to install/configure neutron, no database user password specified")
   if not controlNodeIP or len(str(controlNodeIP)) == 0:
@@ -519,6 +519,10 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
     raise Exception("Unable to install/configure neutron, no network node instance IP specified")
   if not networkNodeExternalNetworkInterface or len(str(networkNodeExternalNetworkInterface)) == 0:
     raise Exception("Unable to install/configure neutron, no network node external network interface specified")
+  if not internetNetworkInterface or len(str(internetNetworkInterface)) == 0:
+    raise Exception("Unable to install/configure neutron, no network node Internet network interface specified")
+  if not providerExternalNetworkCIDR or len(str(providerExternalNetworkCIDR)) == 0:
+    raise Exception("Unable to install/configure neutron, no Provider External Network CIDR specified")
   print ''
   log('Installing Neutron')
   run_command("apt-get install -y openvswitch-switch openvswitch-datapath-dkms" , True)
@@ -587,10 +591,12 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   set_config_ini(neutronL3AgentConf, 'DEFAULT', 'use_namespaces', 'True')
   # iptables rule to get VM/Instance to Internet working
   # /etc/rc.local so rule is set on boot
-  iptablesRcLocalCommand = "grep -e '^iptables\s*\-t\s*nat\s*\-A\s*POSTROUTING\s\-s\s*192\.168\.100\.0/24\s*\-j\s*SNAT\s*\-\-to\-source' /etc/rc.local; if [ $? -eq 0 ] ; then sed -i 's/^iptables\s*\-t\s*nat\s*\-A\s*POSTROUTING\s\-s\s*192\.168\.100\.0\/24\s*\-j\s*SNAT\s*\-\-to\-source.*/iptables \-t nat \-A POSTROUTING \-s 192\.168\.100\.0\/24 \-j SNAT \-\-to\-source \`ip \-4 \-o addr show eth3 \| sed " + '"' + "s\/\.*inet\\s*\/\/" + '"' + " \| cut \-f1 \-d\/\`/' /etc/rc.local; else awk '/^exit/{print " + '"' + "iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -j SNAT --to-source `ip -4 -o addr show eth3 | sed 's/.*inet\s*//' | cut -f1 -d/`" + '"' + "}1' /etc/rc.local >/etc/rc.local.new; mv /etc/rc.local.new /etc/rc.local; fi;"
+  providerExternalNetworkCIDREscaped = str(providerExternalNetworkCIDR)
+  providerExternalNetworkCIDREscaped = str(providerExternalNetworkCIDREscaped).replace('.', '\.').replace('/', '\/')
+  iptablesRcLocalCommand = "grep -e '^iptables\s*\-t\s*nat\s*\-A\s*POSTROUTING\s\-s\s*" + providerExternalNetworkCIDREscaped + "\s*\-j\s*SNAT\s*\-\-to\-source' /etc/rc.local; if [ $? -eq 0 ] ; then sed -i 's/^iptables\s*\-t\s*nat\s*\-A\s*POSTROUTING\s\-s\s*" + providerExternalNetworkCIDREscaped + "\s*\-j\s*SNAT\s*\-\-to\-source.*/iptables \-t nat \-A POSTROUTING \-s " + providerExternalNetworkCIDREscaped + " \-j SNAT \-\-to\-source \`ip \-4 \-o addr show " + internetNetworkInterface + " \| sed " + '"' + "s\/\.*inet\\s*\/\/" + '"' + " \| cut \-f1 \-d\/\`/' /etc/rc.local; else awk '/^exit/{print " + '"' + "iptables -t nat -A POSTROUTING -s " + providerExternalNetworkCIDR + " -j SNAT --to-source `ip -4 -o addr show " + internetNetworkInterface + " | sed 's/.*inet\s*//' | cut -f1 -d/`" + '"' + "}1' /etc/rc.local >/etc/rc.local.new; mv /etc/rc.local.new /etc/rc.local; fi;"
   run_command(iptablesRcLocalCommand)
   # and run it now to get it active now
-  iptablesCommand = "iptables -t nat -A POSTROUTING -s 192.168.100.0/24 -j SNAT --to-source `ip -4 -o addr show eth3 | sed " + '"' + "s/.*inets*//" + '"' + " | cut -f1 -d/`"
+  iptablesCommand = "iptables -t nat -A POSTROUTING -s " + providerExternalNetworkCIDR + " -j SNAT --to-source `ip -4 -o addr show %s | sed " + '"' + "s/.*inets*//" + '"' + " | cut -f1 -d/`" %internetNetworkInterface
   run_command(iptablesCommand)
   run_command("service neutron-plugin-openvswitch-agent restart", True)
   run_command("service neutron-dhcp-agent restart", True)
