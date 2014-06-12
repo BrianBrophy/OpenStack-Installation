@@ -137,6 +137,10 @@ The OpenStack Network node will run NTP and Neutron.
 
 ### Network Configuration
 - You can assign any address appropriate for the network (.22s are shown, but you could just as easily use .12s).
+- As root, install ethtool (so gro can be managed within the network interface configuration): 
+
+<pre>apt-get install -y ethtool</pre>
+
 - As root, edit /etc/network/interfaces to configure networking (be sure to check the MAC addresses as reported in the VM network configuration in VirtualBox with the OS representation as reported by ifconfig to ensure correct assignments)
 
 <pre>
@@ -394,10 +398,10 @@ iface eth2 inet dhcp
 <pre>neutron net-list</pre>
 
 ## Creating Subnet on External Network
-- We configured our VirtualBox host-only network to access the VMs as 192.168.100.0/24
-- We will take this subnet, and use it as an allocation pool for floating IPs on the external subnet
+- We configured our VirtualBox host-only network to access the VMs as 192.168.100.0/24.  This is also what was within the icehouse-install.ini file as the OpenStack external/provider network that, during the installation of the Network Node, we configured iptables to SNAT traffic from in order to get VM/instance out to Internet traffic working.
+- We will take this subnet, and use it as an allocation pool for floating IPs on the external subnet.  Note how the gateway is the IP Address assigned to the Network Node's interface on the external network.
 
-<pre>neutron subnet-create ext-net --name ext-subnet --allocation-pool start=192.168.100.2,end=192.168.100.254 --disable-dhcp --gateway 192.168.100.1 192.168.100.0/24</pre>
+<pre>neutron subnet-create ext-net --name ext-subnet --allocation-pool start=192.168.100.20,end=192.168.100.254 --disable-dhcp --gateway 192.168.100.2 192.168.100.0/24</pre>
 
 - Confirm by listing subnets
 
@@ -428,7 +432,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 - Create tenant subnet (this subnet is hidden behind the Network node, accessible only by the instance VMs)
 
-<pre>neutron subnet-create demo-net --name demo-subnet --dns-nameserver 8.8.8.8 --gateway 192.168.150.1 192.168.150.0/24</pre>
+<pre>neutron subnet-create demo-net --name demo-subnet --dns-nameserver 8.8.8.8 --gateway 172.16.10.1 172.16.10.0/24</pre>
 
 - Confirm by listing tenant subnets
 
@@ -547,7 +551,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 - Wait until the VM is running, and has networking running .... you can use the "nova list" command to see the Power State and Network (if you do not wait, the floating IP assignment may not take effect, in which case you can just disaassociate and then (re) associate the floating IP again)
 - Associate a floating IP with the instance
 
-<pre>nova floating-ip-associate ubuntu-demo-1 192.168.100.5</pre>
+<pre>nova floating-ip-associate ubuntu-demo-1 192.168.100.21</pre>
 
 - Confirm by listing the nova instances
 
@@ -556,7 +560,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 - Now, you should be able to SSH into the instance.  For Ubuntu, the ubuntu user has been configured with the SSH key pair you specified when launching the instance.
 - From Linux, you can connect to the assigned floating IP using the SSH key identity file
 
-<pre>ssh -i ~/.ssh/id_rsa ubuntu@192.168.100.3</pre>
+<pre>ssh -i ~/.ssh/id_rsa ubuntu@192.168.100.21</pre>
 
 - From Windows, you can use PuTTY's puttygen executable to convert the private key to a PuTTY private key (*.ppk) file and then within your PuTTY session, be sure to configure Connection - Data - Auto login username as well as Connection - SSH - Auth - Private key file for authentication and then you should be able to SSH to the floating IP.
 
