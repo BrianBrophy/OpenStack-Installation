@@ -596,7 +596,7 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   iptablesRcLocalCommand = "grep -e '^iptables\s*\-t\s*nat\s*\-A\s*POSTROUTING\s\-s\s*" + providerExternalNetworkCIDREscaped + "\s*\-j\s*SNAT\s*\-\-to\-source' /etc/rc.local; if [ $? -eq 0 ] ; then sed -i 's/^iptables\s*\-t\s*nat\s*\-A\s*POSTROUTING\s\-s\s*" + providerExternalNetworkCIDREscaped + "\s*\-j\s*SNAT\s*\-\-to\-source.*/iptables \-t nat \-A POSTROUTING \-s " + providerExternalNetworkCIDREscaped + " \-j SNAT \-\-to\-source \`ip \-4 \-o addr show " + internetNetworkInterface + " \| sed " + '"' + "s\/\.*inet\\s*\/\/" + '"' + " \| cut \-f1 \-d\/\`/' /etc/rc.local; else awk '/^exit/{print " + '"' + "iptables -t nat -A POSTROUTING -s " + providerExternalNetworkCIDR + " -j SNAT --to-source `ip -4 -o addr show " + internetNetworkInterface + " | sed 's/.*inet\s*//' | cut -f1 -d/`" + '"' + "}1' /etc/rc.local >/etc/rc.local.new; mv /etc/rc.local.new /etc/rc.local; chmod 755 /etc/rc.local; fi;"
   run_command(iptablesRcLocalCommand)
   # and run it now to get it active now
-  iptablesCommand = "iptables -t nat -A POSTROUTING -s " + providerExternalNetworkCIDR + " -j SNAT --to-source `ip -4 -o addr show %s | sed " + '"' + "s/.*inets*//" + '"' + " | cut -f1 -d/`" %internetNetworkInterface
+  iptablesCommand = "iptables -t nat -A POSTROUTING -s " + providerExternalNetworkCIDR + " -j SNAT --to-source `ip -4 -o addr show " + internetNetworkInterface + " | sed " + '"' + "s/.*inets*//" + '"' + " | cut -f1 -d/`"
   run_command(iptablesCommand)
   run_command("service neutron-plugin-openvswitch-agent restart", True)
   run_command("service neutron-dhcp-agent restart", True)
