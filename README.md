@@ -163,6 +163,13 @@ up ifconfig $IFACE 0.0.0.0 up
 up ip link set $IFACE promisc on
 down ip link set $IFACE promisc off
 down ifconfig $IFACE down
+post-up ethtool -K $IFACE gro off
+
+auto br-ex
+iface br-ex inet static
+address 192.168.100.2
+netmask 255.255.255.0
+post-up ethtool -K $IFACE gro off
 
 # The primary network interface
 auto eth3
