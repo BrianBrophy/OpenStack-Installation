@@ -42,19 +42,22 @@ controlManagementNetworkIP = osicommon.get_config_ini(iniPath, 'control', 'netwo
 instanceNetworkInterface = osicommon.get_config_ini(iniPath, 'network', 'network_interface_instance')
 instanceNetworkIP = osicommon.get_network_address(instanceNetworkInterface)
 externalNetworkInterface = osicommon.get_config_ini(iniPath, 'network', 'network_interface_external')
+internetNetworkInterface = osicommon.get_config_ini(iniPath, 'network', 'network_interface_internet')
+providerExternalNetworkCIDR = osicommon.get_config_ini(iniPath, 'network', 'openstack_external_network')
 
 print ''
 osicommon.log('Using network addresses:')
 print '    Control Node Management Network Address: ' + str(controlManagementNetworkIP)
 print '    Network Node Instance Network Address: ' + str(instanceNetworkIP)
 print '    Network Node External Network Interface: ' + str(externalNetworkInterface)
+print '    Network Node Internet Network Interface: ' + str(internetNetworkInterface)
 
 # Install NTP
 osicommon.install_ntp(controlManagementNetworkIP)
 
 # Install Neutron
 neutronDatabasePassword = osicommon.get_config_ini(iniPath, 'neutron', 'database_user_password')
-osicommon.install_neutron_on_network_node(neutronDatabasePassword, controlManagementNetworkIP, instanceNetworkIP, externalNetworkInterface)
+osicommon.install_neutron_on_network_node(neutronDatabasePassword, controlManagementNetworkIP, instanceNetworkIP, externalNetworkInterface, internetNetworkInterface, providerExternalNetworkCIDR)
 
 print ''
 osicommon.log('Finished installation')
