@@ -192,7 +192,7 @@ iface eth3 inet dhcp
 
 <pre>git clone https://github.com/BrianBrophy/OpenStack-Installation.git</pre>
 
-- Edit icehouse-install.ini and ensure configuration looks good.  Pay close attention to the network section, ensuring the references to the control node addresses are correct.
+- Edit icehouse-install.ini and ensure configuration looks good.  Within the control section, be sure the network_address_management matches the IP of your Control Node's manegement interface.  Pay close attention to the network section.  Make sure the instance, external (floating IPs), and internet interfaces match your host.  Also be sure the provider/external OpenStack network CIDR aligns with the host-only network you assigned in VirtualBox because a special iptables rule will be created on the network node (and added to /etc/rc.local) to source NAT all traffic coming from this network (ie, from your compute/instance VMs) to the IP Address on your host's Internet interface (ie, the one connected to the VirtualBox NAT network).  This is needed to get compute/instance VM connectivity out to the Internet.  Your compute/instance VMs are not accessible from the Internet because the external network floating IP range is on a VirtualBox host-only network.
 
 <pre>vi icehouse-install.ini</pre>
 
@@ -280,7 +280,7 @@ iface eth2 inet dhcp
 
 <pre>git clone https://github.com/BrianBrophy/OpenStack-Installation.git</pre>
 
-- Edit icehouse-install.ini and ensure configuration looks good.  Pay close attention to the compute section, ensuring the references to the control node addresses are correct.
+- Edit icehouse-install.ini and ensure configuration looks good.  Within the control section, be sure the network_address_management matches the IP of your Control Node's manegement interface.  Pay close attention to the compute section, ensuring the references to the network interfaces are correct.
 
 <pre>vi icehouse-install.ini</pre>
 
