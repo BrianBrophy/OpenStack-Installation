@@ -296,7 +296,7 @@ iface eth2 inet dhcp
 # Using OpenStack
 - For all of these command-line actions, you will either have to have environment variables configured in the shell for OpenStack clients to use (that you can set by sourcing a file), or use command-line arguments to specify them
 - We will be showing the sourcing usage
-- Source the admin credentials (created by the installation script)
+- Source the admin credentials (created by the installation script on the Controller node)
 
 <pre>source /root/openstack-admin.rc</pre>
 
@@ -470,7 +470,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 
 ## Launching Instances
-- On a node with the OpenStack clients installed, login to your user account (ie, brian is shown here)
+- On a node with the OpenStack clients installed (the Controller node works), login to your user account (ie, brian is shown here)
 - Source the tenant .rc file
 
 <pre>source openstack-brian.rc</pre>
@@ -568,7 +568,8 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 - If testing the CentOS image, the SSH key pair is setup for the root user
 
 ## Working With Block Storage (Cinder)
-- On a node with the OpenStack clients installed, login to your user account (ie, brian is shown here)
+- Login to root on the Controller node and ensure the cinder-volumes volume group exists in LVM.  If it does not exist, configure the volume group within LVM (just the volume group, no need to setup any logical volumes because Cinder will manage them).
+- On a node with the OpenStack clients installed (the Controller node works), login to your user account (ie, brian is shown here)
 - Source the tenant .rc file
 
 <pre>source openstack-brian.rc</pre>
