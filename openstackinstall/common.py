@@ -139,9 +139,9 @@ def install_cinder(databaseUserPassword, controlNodeIP, mySQLPassword):
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'signing_dir', '/var/lib/cinder')
   run_command("cinder-manage db sync", True)
   #run_command("cd /etc/init.d/; for i in $( ls cinder-* ); do service $i restart; done", True)
-  run_command("cinder-api restart")
-  run_command("cinder-scheduler restart")
-  run_command("cinder-volume restart")
+  run_command("service cinder-api restart")
+  run_command("service cinder-scheduler restart")
+  run_command("service cinder-volume restart")
   log('Completed Cinder')
 #######################################################################
 
