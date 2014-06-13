@@ -103,7 +103,7 @@ def install_cinder(databaseUserPassword, controlNodeIP, mySQLPassword):
   run_command("service tgt restart")
   #run_command("sed -i 's/false/true/g' /etc/default/iscsitarget")
   #run_command("service iscsitarget restart")
-  #run_command("service open-iscsi restart")
+  run_command("service open-iscsi restart")
   cinderConf = '/etc/cinder/cinder.conf'
   set_config_ini(cinderConf, 'DEFAULT', 'rootwrap_config', '/etc/cinder/rootwrap.conf')
   set_config_ini(cinderConf, 'DEFAULT', 'sql_connection', "mysql://cinder:%s@%s/cinder" %(databaseUserPassword,controlNodeIP))
@@ -138,7 +138,6 @@ def install_cinder(databaseUserPassword, controlNodeIP, mySQLPassword):
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'admin_password', 'cinder')
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'signing_dir', '/var/lib/cinder')
   run_command("cinder-manage db sync", True)
-  #run_command("cd /etc/init.d/; for i in $( ls cinder-* ); do service $i restart; done", True)
   run_command("service cinder-api restart")
   run_command("service cinder-scheduler restart")
   run_command("service cinder-volume restart")
