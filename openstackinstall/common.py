@@ -87,26 +87,28 @@ def install_cinder(databaseUserPassword, controlNodeIP, mySQLPassword):
   log('Installing Cinder')
   run_db_command(mySQLPassword, "CREATE DATABASE IF NOT EXISTS cinder CHARACTER SET utf8 COLLATE utf8_general_ci;")
   run_db_command(mySQLPassword, "GRANT ALL ON cinder.* TO 'cinder'@'%' IDENTIFIED BY '" + databaseUserPassword + "';")
-  delete_file('/etc/apt/sources.list.d/icehouse-iscsitarget.list')
-  run_command("echo deb http://ppa.launchpad.net/smb/iscsitarget/ubuntu precise main >> /etc/apt/sources.list.d/icehouse-iscsitarget.list")
-  run_command("echo deb-src http://ppa.launchpad.net/smb/iscsitarget/ubuntu precise main >> /etc/apt/sources.list.d/icehouse-iscsitarget.list")
+  # iscsitarget is not needed, can use tgt instead - which is what cinder-volume wants to use
+  #delete_file('/etc/apt/sources.list.d/icehouse-iscsitarget.list')
+  #run_command("echo deb http://ppa.launchpad.net/smb/iscsitarget/ubuntu precise main >> /etc/apt/sources.list.d/icehouse-iscsitarget.list")
+  #run_command("echo deb-src http://ppa.launchpad.net/smb/iscsitarget/ubuntu precise main >> /etc/apt/sources.list.d/icehouse-iscsitarget.list")
   os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
-  run_command("apt-get update -y", True)
-  try:
-    run_command("apt-get install -y --force-yes iscsitarget open-iscsi iscsitarget-dkms", True)
-  except:
-    # try one last time
-    run_command("apt-get install -y --force-yes iscsitarget open-iscsi iscsitarget-dkms", True)
-  run_command("apt-get install -y cinder-api cinder-scheduler cinder-volume" , True)
+  #run_command("apt-get update -y", True)
+  #try:
+  #  run_command("apt-get install -y --force-yes iscsitarget open-iscsi iscsitarget-dkms", True)
+  #except:
+  #  # try one last time
+  #  run_command("apt-get install -y --force-yes iscsitarget open-iscsi iscsitarget-dkms", True)
+  run_command("apt-get install -y open-iscsi cinder-api cinder-scheduler cinder-volume sysfsutils tgt" , True)
   log('Configuring Cinder')
-  run_command("sed -i 's/false/true/g' /etc/default/iscsitarget")
-  run_command("service iscsitarget restart")
-  run_command("service open-iscsi restart")
+  run_command("service tgt restart")
+  #run_command("sed -i 's/false/true/g' /etc/default/iscsitarget")
+  #run_command("service iscsitarget restart")
+  #run_command("service open-iscsi restart")
   cinderConf = '/etc/cinder/cinder.conf'
   set_config_ini(cinderConf, 'DEFAULT', 'rootwrap_config', '/etc/cinder/rootwrap.conf')
   set_config_ini(cinderConf, 'DEFAULT', 'sql_connection', "mysql://cinder:%s@%s/cinder" %(databaseUserPassword,controlNodeIP))
   set_config_ini(cinderConf, 'DEFAULT', 'api_paste_config', '/etc/cinder/api-paste.ini')
-  set_config_ini(cinderConf, 'DEFAULT', 'iscsi_helper', 'ietadm')
+  set_config_ini(cinderConf, 'DEFAULT', 'iscsi_helper', 'tgtadm')
   set_config_ini(cinderConf, 'DEFAULT', 'volume_name_template', 'volume-%s')
   set_config_ini(cinderConf, 'DEFAULT', 'volume_group', 'cinder-volumes')
   set_config_ini(cinderConf, 'DEFAULT', 'verbose', 'False')
@@ -136,7 +138,10 @@ def install_cinder(databaseUserPassword, controlNodeIP, mySQLPassword):
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'admin_password', 'cinder')
   set_config_ini(cinderApiPasteConf, 'filter:authtoken', 'signing_dir', '/var/lib/cinder')
   run_command("cinder-manage db sync", True)
-  run_command("cd /etc/init.d/; for i in $( ls cinder-* ); do service $i restart; done", True)
+  #run_command("cd /etc/init.d/; for i in $( ls cinder-* ); do service $i restart; done", True)
+  run_command("cinder-api restart")
+  run_command("cinder-scheduler restart")
+  run_command("cinder-volume restart")
   log('Completed Cinder')
 #######################################################################
 
@@ -619,6 +624,8 @@ def install_nova_on_compute_node(databaseUserPassword, controlNodeIP, computeNod
   os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
   run_command("apt-get install -y qemu-kvm libvirt-bin python-libvirt" , True)
   run_command("apt-get install -y nova-compute-kvm novnc python-guestfs" , True)
+  # For Cinder
+  run_command("apt-get install -y sysfsutils tgt" , True)
   log('Configuring Nova')
   delete_file('/var/lib/nova/nova.sqlite')
   overRideExists = run_command('dpkg-statoverride --list | egrep -c "/boot/vmlinuz-$(uname -r)"' + " | awk '{print $2}'")
@@ -660,7 +667,7 @@ def install_nova_on_compute_node(databaseUserPassword, controlNodeIP, computeNod
   set_config_ini(novaConf, 'DEFAULT', 'neutron_admin_auth_url', "http://%s:35357/v2.0/" %controlNodeIP)
   set_config_ini(novaConf, 'DEFAULT', 'neutron_auth_strategy', 'keystone')
   set_config_ini(novaConf, 'DEFAULT', 'neutron_url', "http://%s:9696/" %controlNodeIP)
-  set_config_ini(novaConf, 'DEFAULT', 'iscsi_helper', 'ietadm')
+  set_config_ini(novaConf, 'DEFAULT', 'iscsi_helper', 'tgtadm')
   set_config_ini(novaConf, 'DEFAULT', 'volume_name_template', 'volume-%s')
   set_config_ini(novaConf, 'DEFAULT', 'volume_group', 'cinder-volumes')
   set_config_ini(novaConf, 'DEFAULT', 'iscsi_ip_address', controlNodeIP)
@@ -749,7 +756,7 @@ def install_nova_on_control_node(databaseUserPassword, controlNodeIP, mySQLPassw
   set_config_ini(novaConf, 'DEFAULT', 'security_group_api', 'neutron')
   set_config_ini(novaConf, 'DEFAULT', 'service_neutron_metadata_proxy', 'True')
   set_config_ini(novaConf, 'DEFAULT', 'neutron_metadata_proxy_shared_secret', 'helloOpenStack')
-  set_config_ini(novaConf, 'DEFAULT', 'iscsi_helper', 'ietadm')
+  set_config_ini(novaConf, 'DEFAULT', 'iscsi_helper', 'tgtadm')
   set_config_ini(novaConf, 'DEFAULT', 'volume_name_template', 'volume-%s')
   set_config_ini(novaConf, 'DEFAULT', 'volume_group', 'cinder-volumes')
   set_config_ini(novaConf, 'DEFAULT', 'iscsi_ip_address', controlNodeIP)
