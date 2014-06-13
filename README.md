@@ -566,3 +566,97 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 - If testing the CirrOS image, the SSH key pair is setup for the cirros user
 - If testing the CentOS image, the SSH key pair is setup for the root user
+
+## Working With Block Storage (Cinder)
+- On a node with the OpenStack clients installed, login to your user account (ie, brian is shown here)
+- Source the tenant .rc file
+
+<pre>source openstack-brian.rc</pre>
+
+- Create volume (size here is 1 GB, can be any number of GBs you have storage to support)
+
+<pre>cinder create --display-name test-volume 1</pre>
+
+- Confirm by listing the cinder volumes
+
+<pre>cinder list</pre>
+
+- IDs will vary, but here is some sample output
+
+<pre>
++--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
+|                  ID                  |   Status  | Display Name | Size | Volume Type | Bootable | Attached to |
++--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
+| 65cf791a-8128-4335-9d53-a53bd51599db | available | test-volume  |  1   |     None    |  false   |             |
++--------------------------------------+-----------+--------------+------+-------------+----------+-------------+
+</pre>
+
+- List the VMs so we know the ID of the server we want to attach the volume to
+
+<pre>nova list</pre>
+
+- Again, IDs vary, but here we see
+
+<pre>
++--------------------------------------+---------------+--------+------------+-------------+--------------------------------------+
+| ID                                   | Name          | Status | Task State | Power State | Networks                             |
++--------------------------------------+---------------+--------+------------+-------------+--------------------------------------+
+| 95ecf8f9-1955-45e7-b0c9-1d4eb4874d59 | cirros-demo-1 | ACTIVE | -          | Running     | demo-net=172.16.10.2, 192.168.100.21 |
+| 7425c587-d404-4fa3-a096-3e84543abfa8 | ubuntu-demo-1 | BUILD  | spawning   | NOSTATE     |                                      |
++--------------------------------------+---------------+--------+------------+-------------+--------------------------------------+
+</pre>
+
+- Attach the volume (syntax: nova volume-attach server volume device).  Note, since we are using KVM, KVM only supports the device as being "auto".
+
+<pre>nova volume-attach 95ecf8f9-1955-45e7-b0c9-1d4eb4874d59 65cf791a-8128-4335-9d53-a53bd51599db auto</pre>
+
+- The output informs us as to what device was assigned on the VM
+
+<pre>
++----------+--------------------------------------+
+| Property | Value                                |
++----------+--------------------------------------+
+| device   | /dev/vdb                             |
+| id       | 65cf791a-8128-4335-9d53-a53bd51599db |
+| serverId | 95ecf8f9-1955-45e7-b0c9-1d4eb4874d59 |
+| volumeId | 65cf791a-8128-4335-9d53-a53bd51599db |
++----------+--------------------------------------+
+</pre>
+
+- Confirm by listing the cinder volumes
+
+<pre>cinder list</pre>
+
+- And, we can see it is attached
+
+<pre>
++--------------------------------------+--------+--------------+------+-------------+----------+--------------------------------------+
+|                  ID                  | Status | Display Name | Size | Volume Type | Bootable |             Attached to              |
++--------------------------------------+--------+--------------+------+-------------+----------+--------------------------------------+
+| 65cf791a-8128-4335-9d53-a53bd51599db | in-use | test-volume  |  1   |     None    |  false   | 95ecf8f9-1955-45e7-b0c9-1d4eb4874d59 |
++--------------------------------------+--------+--------------+------+-------------+----------+--------------------------------------+
+</pre>
+
+- Now that it is attached, we can mount and use it on the VM
+- Log into the VM and get to root
+- Since this is the first we are using this volume, we need to format it
+
+<pre>mkfs /dev/vdb</pre>
+
+- Create a mount location
+
+<pre>mkdir /cindervol</pre>
+
+- Mount
+
+<pre>mount /dev/vdb /cindervol</pre>
+
+- Confirm by showing the disks on the VM
+
+<pre>df -kh</pre>
+
+- When done using the volume, unmount it
+
+<pre>umount /cindervol</pre>
+
+- The volume could now be presented again to this VM, or even to another VM
