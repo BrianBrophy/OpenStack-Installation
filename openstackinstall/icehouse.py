@@ -272,6 +272,10 @@ def install_keystone(databaseUserPassword, controlNodeIP, mySQLPassword):
   if not admin_role or not len(str(admin_user)) > 0:
     admin_role = osicommon.run_command("keystone " + adminAuthArg + " role-create --name admin|grep ' id '|awk '{print $4}'")
 
+  heat_role = osicommon.run_command("keystone " + adminAuthArg + " role-list| grep 'heat_stack_user' | awk '{print $2}'")
+  if not heat_role or not len(str(heat_role)) > 0:
+    heat_role = osicommon.run_command("keystone " + adminAuthArg + " role-create --name heat_stack_user|grep ' id '|awk '{print $4}'")
+
   admin_role_mapped = osicommon.run_command("keystone " + adminAuthArg + " user-role-list --user_id %s --tenant_id %s | grep %s | awk '{print $2}'" % (admin_user,admin_tenant,admin_role))
   if not admin_role_mapped or not len(str(admin_role_mapped)) > 0:
     osicommon.run_command("keystone " + adminAuthArg + " user-role-add --user_id %s --tenant_id %s --role_id %s" % (admin_user, admin_tenant, admin_role))
