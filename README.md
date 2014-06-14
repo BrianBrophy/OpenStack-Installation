@@ -310,10 +310,6 @@ iface eth2 inet dhcp
 
 <pre>glance image-create --name 'Ubuntu 12.04 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://uec-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img</pre>
 
-- Load CentOS 6 Image
-
-<pre>glance image-create --name 'CentOS 6 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://c250663.r63.cf1.rackcdn.com/centos60_x86_64.qcow2</pre>
-
 - Confirm by listing Glance images
 
 <pre>glance image-list</pre>
