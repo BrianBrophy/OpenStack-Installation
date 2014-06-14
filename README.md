@@ -661,3 +661,83 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 <pre>umount /cindervol</pre>
 
 - The volume could now be presented again to this VM, or even to another VM
+
+## Working With Orchestration (Heat)
+- On a node with the OpenStack clients installed (the Controller node works), login to your user account (ie, brian is shown here)
+- Source the tenant .rc file
+
+<pre>source openstack-brian.rc</pre>
+
+- Create a test Heat template file named heat-test.yaml (or whatever you want)
+
+<pre>
+heat_template_version: 2013-05-23
+
+description: Simple template to deploy a single compute instance
+
+parameters:
+  keyName:
+    type: string
+    label: Key Name
+    description: Name of key-pair to be used for compute instance
+  image:
+    type: string
+    label: Image
+    description: Image to be used for compute instance
+  flavor:
+    type: string
+    label: Flavor
+    description: Type of instance (flavor) to be used
+  network:
+    type: string
+    label: Network
+    description: Network to use for compute instance
+  securityGroups:
+    type: string
+    label: Security Groups
+    description: Security Groups to use for compute instance
+
+resources:
+  my_instance:
+    type: OS::Nova::Server
+    properties:
+      key_name: { get_param: keyName }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - network: { get_param: network }
+      security_groups: [ { get_param: securityGroups } ]
+</pre>
+
+- Within this simple Heat file, you can see we defined some input parameters (keyName, image, flavor, network, securityGroups) and then we are using them to boot a single compute instance.
+- Create a Heat stack using this file (the last argument is the stack name ... you could use something else)
+
+<pre>heat stack-create -f heat-test.yaml -P "image=CirrOS 0.3.2 x86_64;flavor=m1.tiny;keyName=brian-key;securityGroups=default;network=demo-net" brian2</pre>
+
+- Confirm by listing your stacks
+
+<pre>heat stack-list</pre>
+
+- IDs will vary, but here is a sample:
+
+<pre>
++--------------------------------------+------------+--------------------+----------------------+
+| id                                   | stack_name | stack_status       | creation_time        |
++--------------------------------------+------------+--------------------+----------------------+
+| f58a780e-b3e8-4840-bbe9-378e88829660 | brian2     | CREATE_IN_PROGRESS | 2014-06-14T20:34:49Z |
++--------------------------------------+------------+--------------------+----------------------+
+</pre>
+
+- We can continue to use the "heat stack-list" command to show the progress until it is complete.  Once Heat has finished, we will see our new instance running within Nova.
+
+<pre>nova list</pre>
+
+<pre>
++--------------------------------------+---------------------------------+--------+------------+-------------+--------------------------------------+
+| ID                                   | Name                            | Status | Task State | Power State | Networks                             |
++--------------------------------------+---------------------------------+--------+------------+-------------+--------------------------------------+
+| bee9e8ec-8843-4185-ab7d-c85da96fb8f0 | brian2-my_instance-fkfu3epgqhyo | ACTIVE | -          | Running     | demo-net=172.16.10.6                 |
++--------------------------------------+---------------------------------+--------+------------+-------------+--------------------------------------+
+</pre>
+
+- There is a lot more you can do with Heat, but this is just a simple example
