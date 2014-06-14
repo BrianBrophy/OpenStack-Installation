@@ -9,6 +9,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__))
 import openstackinstall.common as osicommon
+import openstackinstall.icehouse as icehouse
 
 
 if not os.geteuid() == 0:
@@ -21,7 +22,7 @@ osicommon.log('Starting installation')
 print ''
 
 # Update, Upgrade, Add Repo
-osicommon.base_system_update()
+icehouse.base_system_update()
 
 # sysctl
 osicommon.set_sysctl('net.ipv4.ip_forward', '1')
@@ -29,10 +30,10 @@ osicommon.set_sysctl('net.ipv4.conf.all.rp_filter', '0')
 osicommon.set_sysctl('net.ipv4.conf.default.rp_filter', '0')
 
 # Install vlan
-osicommon.install_vlan()
+icehouse.install_vlan()
 
 # Install bridge-utils
-osicommon.install_bridgeutils()
+icehouse.install_bridgeutils()
 
 # Install INI path
 iniPath = os.path.join(os.path.dirname(__file__), 'icehouse-install.ini')
@@ -50,15 +51,15 @@ print '    Compute Node Management Network Address: ' + str(managementNetworkIP)
 print '    Compute Node Instance Network Address: ' + str(instanceNetworkIP)
 
 # Install NTP
-osicommon.install_ntp(controlManagementNetworkIP)
+icehouse.install_ntp(controlManagementNetworkIP)
 
 # Install Nova
 novaDatabasePassword = osicommon.get_config_ini(iniPath, 'nova', 'database_user_password')
-osicommon.install_nova_on_compute_node(novaDatabasePassword, controlManagementNetworkIP, managementNetworkIP)
+icehouse.install_nova_on_compute_node(novaDatabasePassword, controlManagementNetworkIP, managementNetworkIP)
 
 # Install Neutron
 neutronDatabasePassword = osicommon.get_config_ini(iniPath, 'neutron', 'database_user_password')
-osicommon.install_neutron_on_compute_node(neutronDatabasePassword, controlManagementNetworkIP, instanceNetworkIP)
+icehouse.install_neutron_on_compute_node(neutronDatabasePassword, controlManagementNetworkIP, instanceNetworkIP)
 
 print ''
 osicommon.log('Finished installation')

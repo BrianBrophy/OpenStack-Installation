@@ -9,6 +9,7 @@ import os
 
 sys.path.append(os.path.dirname(__file__))
 import openstackinstall.common as osicommon
+import openstackinstall.icehouse as icehouse
 
 
 if not os.geteuid() == 0:
@@ -21,7 +22,7 @@ osicommon.log('Starting installation')
 print ''
 
 # Update, Upgrade, Add Repo
-osicommon.base_system_update()
+icehouse.base_system_update()
 
 # sysctl
 osicommon.set_sysctl('net.ipv4.ip_forward', '1')
@@ -29,10 +30,10 @@ osicommon.set_sysctl('net.ipv4.conf.all.rp_filter', '0')
 osicommon.set_sysctl('net.ipv4.conf.default.rp_filter', '0')
 
 # Install vlan
-osicommon.install_vlan()
+icehouse.install_vlan()
 
 # Install bridge-utils
-osicommon.install_bridgeutils()
+icehouse.install_bridgeutils()
 
 # Install INI path
 iniPath = os.path.join(os.path.dirname(__file__), 'icehouse-install.ini')
@@ -53,11 +54,11 @@ print '    Network Node External Network Interface: ' + str(externalNetworkInter
 print '    Network Node Internet Network Interface: ' + str(internetNetworkInterface)
 
 # Install NTP
-osicommon.install_ntp(controlManagementNetworkIP)
+icehouse.install_ntp(controlManagementNetworkIP)
 
 # Install Neutron
 neutronDatabasePassword = osicommon.get_config_ini(iniPath, 'neutron', 'database_user_password')
-osicommon.install_neutron_on_network_node(neutronDatabasePassword, controlManagementNetworkIP, instanceNetworkIP, externalNetworkInterface, internetNetworkInterface, providerExternalNetworkCIDR)
+icehouse.install_neutron_on_network_node(neutronDatabasePassword, controlManagementNetworkIP, instanceNetworkIP, externalNetworkInterface, internetNetworkInterface, providerExternalNetworkCIDR)
 
 print ''
 osicommon.log('Finished installation')
