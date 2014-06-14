@@ -241,6 +241,13 @@ def install_heat(databaseUserPassword, controlNodeIP, mySQLPassword):
   osicommon.run_command("service heat-engine restart", True)
   time.sleep(10)
   osicommon.run_command("heat-manage db_sync", True)
+  # Another restart seems to be the most reliable thing after the db_sync in Heat
+  # Sometimes seeing RPC timeouts if a final restart is not done
+  time.sleep(10)
+  osicommon.run_command("service heat-api restart", True)
+  osicommon.run_command("service heat-api-cfn restart", True)
+  osicommon.run_command("service heat-engine restart", True)
+  time.sleep(10)
   osicommon.log('Completed Heat')
 #######################################################################
 
