@@ -9,11 +9,11 @@ Tested with [Ubuntu 12.04 LTS Server 64-bit](http://releases.ubuntu.com/precise/
 ## VirtualBox Host Networks
 Within VirtualBox, go to File - Preferences to bring up Settings, then Network and select the Host-Only Networks tab to define three host-only networks for OpenStack.  Windows does not support naming the virtual network, so the default Windows host-only network names are included below for reference.
 
-| Network        | Windows Network Name           | OpenStack Usage | IPv4 Address           | IPv4 Mask      | DHCP |  
-|:-------------- |:------------------------------ |:--------------- |:---------------------- |:-------------- |:---------|  
-| vboxnet0       | Host-Only Ethernet Adapter #2  | Management      | 10.10.10.1             | 255.255.255.0  | Disabled |
-| vboxnet1       | Host-Only Ethernet Adapter #3  | Instances/VMs   | 10.20.20.1             | 255.255.255.0  | Disabled |
-| vboxnet2       | Host-Only Ethernet Adapter #4  | External        | 192.168.100.1          | 255.255.255.0  | Disabled |
+| Network   | Windows Network Name           | OpenStack Usage        | IPv4 Address  | IPv4 Mask      | DHCP |  
+|:--------- |:------------------------------ |:---------------------- |:------------- |:-------------- |:---------|  
+| vboxnet0  | Host-Only Ethernet Adapter #2  | Management             | 10.10.10.1    | 255.255.255.0  | Disabled |
+| vboxnet1  | Host-Only Ethernet Adapter #3  | Instances/VMs          | 10.20.20.1    | 255.255.255.0  | Disabled |
+| vboxnet2  | Host-Only Ethernet Adapter #4  | External/Floating IPs  | 192.168.100.1 | 255.255.255.0  | Disabled |
 
 
 ## Control Node
