@@ -17,7 +17,7 @@ Within VirtualBox, go to File - Preferences to bring up Settings, then Network a
 
 
 ## Control Node
-The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neutron, Nova, Cinder, and Horizon.
+The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neutron, Nova, Cinder, Heat, and Horizon.
 
 ### VM Configuration
 - Type: Linux
