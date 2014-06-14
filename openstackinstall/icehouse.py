@@ -185,17 +185,57 @@ def install_heat(databaseUserPassword, controlNodeIP, mySQLPassword):
   osicommon.set_config_ini(heatConf, 'DEFAULT', 'verbose', 'False')
   osicommon.set_config_ini(heatConf, 'DEFAULT', 'rabbit_host', controlNodeIP)
   osicommon.set_config_ini(heatConf, 'DEFAULT', 'rabbit_port', '5672')
+  osicommon.set_config_ini(heatConf, 'DEFAULT', 'heat_metadata_server_url', "http://%s:8000" %controlNodeIP)
+  osicommon.set_config_ini(heatConf, 'DEFAULT', 'heat_waitcondition_server_url', "http://%s:8000/v1/waitcondition" %controlNodeIP)
+  osicommon.set_config_ini(heatConf, 'DEFAULT', 'stack_domain_admin', 'heat_admin')
+  osicommon.set_config_ini(heatConf, 'DEFAULT', 'stack_domain_admin_password', 'heat_password')
+  osicommon.set_config_ini(heatConf, 'DEFAULT', 'heat_stack_user_role', 'heat_stack_user')
   osicommon.set_config_ini(heatConf, 'database', 'connection', "mysql://heat:%s@%s/heat" %(databaseUserPassword,controlNodeIP))
-  osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'auth_uri', "http://%s:5000" %controlNodeIP)
+  osicommon.set_config_ini(heatConf, 'ec2authtoken', 'auth_uri', "http://%s::35357/v2.0" %controlNodeIP)
+  osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'auth_uri', "http://%s::35357/v2.0" %controlNodeIP)
   osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'auth_host', controlNodeIP)
   osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'auth_port', '35357')
   osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'auth_protocol', 'http')
   osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'admin_tenant_name', 'service')
   osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'admin_user', 'heat')
   osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'admin_password', 'heat')
-  osicommon.set_config_ini(heatConf, 'ec2authtoken', 'auth_uri', "http://%s:5000" %controlNodeIP)
-  osicommon.set_config_ini(heatConf, 'DEFAULT', 'heat_metadata_server_url', "http://%s:8000" %controlNodeIP)
-  osicommon.set_config_ini(heatConf, 'DEFAULT', 'heat_waitcondition_server_url', "http://%s:8000/v1/waitcondition" %controlNodeIP)
+  osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'service_host', controlNodeIP)
+  osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'keystone_ec2_uri', "http://%s::35357/v2.0" %controlNodeIP)
+  heatApiPasteConf = '/etc/heat/api-paste.ini'
+  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_host', controlNodeIP)
+  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_port', '35357')
+  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_protocol', 'http')
+  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_uri', "http://%s:35357/v2.0" %controlNodeIP)
+  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'admin_tenant_name', 'service')
+  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'admin_user', 'heat')
+  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'admin_password', 'heat')
+  # Create the Heat Domain using Python API
+  from keystoneclient.v3 import client
+  import keystoneclient.exceptions as kc_exception
+  USERNAME = 'admin'
+  PASSWORD = 'secret'
+  AUTH_URL = "http://%s:5000/v3" %controlNodeIP
+  HEAT_DOMAIN = 'heat'
+  HEAT_DOMAIN_ADMIN = 'heat_admin'
+  HEAT_DOMAIN_PASSWORD = 'heat_password'
+  HEAT_DOMAIN_NAME = 'heat'
+  HEAT_DOMAIN_DESCRIPTION = 'Contains users and projects created by Heat'
+  c = client.Client(debug=False, username=USERNAME, password=PASSWORD, auth_url=AUTH_URL, endpoint=AUTH_URL)
+  ret = c.authenticate()
+  heat_domain = c.domains.list(name=HEAT_DOMAIN_NAME)
+  if not heat_domain:
+    heat_domain = c.domains.create(name=HEAT_DOMAIN_NAME, description=HEAT_DOMAIN_DESCRIPTION)
+  heat_domain = c.domains.list(name=HEAT_DOMAIN_NAME)[0]
+  domain_admin = c.users.list(name=HEAT_DOMAIN_ADMIN)
+  if not domain_admin:
+    domain_admin = c.users.create(name=HEAT_DOMAIN_ADMIN, password=HEAT_DOMAIN_PASSWORD, domain=heat_domain, description="Heat domain admin")
+  domain_admin = c.users.list(name=HEAT_DOMAIN_ADMIN)[0]
+  roles_list = c.roles.list()
+  admin_role = [r for r in roles_list
+    if r.name == 'admin'][0]
+  c.roles.grant(role=admin_role, user=domain_admin, domain=heat_domain)
+  # Update stack_user_domain in config
+  osicommon.set_config_ini(heatConf, 'DEFAULT', 'stack_user_domain', heat_domain.id)
   osicommon.run_command("service heat-api restart", True)
   osicommon.run_command("service heat-api-cfn restart", True)
   osicommon.run_command("service heat-engine restart", True)
