@@ -737,3 +737,134 @@ resources:
 </pre>
 
 - There is a lot more you can do with Heat, but this is just a simple example
+
+## Load Balancer as a Service (LBaaS)
+- The installation script configures Neutron to support LBaaS using haproxy and Open vSwitch
+- On a node with the OpenStack clients installed (the Controller node works), login to your user account (ie, brian is shown here)
+- Source the tenant .rc file
+
+<pre>source openstack-brian.rc</pre>
+
+- Lookup the ID of the subnet on the private demo-network (your IDs will differ)
+
+<pre>neutron subnet-list</pre>
+
+<pre>
++--------------------------------------+-------------+------------------+-------------------------------------------------------+
+| id                                   | name        | cidr             | allocation_pools                                      |
++--------------------------------------+-------------+------------------+-------------------------------------------------------+
+| 2150f65f-969a-4e46-87db-79895849fc88 | ext-subnet  | 192.168.100.0/24 | {"start": "192.168.100.20", "end": "192.168.100.254"} |
+| d50c6d1f-7ab4-4582-82ca-738415ea1d44 | demo-subnet | 172.16.10.0/24   | {"start": "172.16.10.2", "end": "172.16.10.254"}      |
++--------------------------------------+-------------+------------------+-------------------------------------------------------+
+</pre>
+
+- Create an HTTP load balancer pool on that subnet
+
+<pre>neutron lb-pool-create --lb-method ROUND_ROBIN --name my-pool --protocol HTTP --subnet-id d50c6d1f-7ab4-4582-82ca-738415ea1d44</pre>
+
+- Confirm by listing the load balancer pools
+
+<pre>neutron lb-pool-list</pre>
+
+<pre>
++--------------------------------------+----------+----------+-------------+----------+----------------+--------+
+| id                                   | name     | provider | lb_method   | protocol | admin_state_up | status |
++--------------------------------------+----------+----------+-------------+----------+----------------+--------+
+| a4155a90-16a9-47b2-a9c3-fe754afe22a3 | my-pool  | haproxy  | ROUND_ROBIN | HTTP     | True           | ACTIVE |
++--------------------------------------+----------+----------+-------------+----------+----------------+--------+
+</pre>
+
+- Lookup the private network IP of the compute instance to make a member of this pool
+
+<pre>nova list</pre>
+
+<pre>
++--------------------------------------+---------------------------------+---------+------------+-------------+--------------------------------------+
+| ID                                   | Name                            | Status  | Task State | Power State | Networks                             |
++--------------------------------------+---------------------------------+---------+------------+-------------+--------------------------------------+
+| bee9e8ec-8843-4185-ab7d-c85da96fb8f0 | brian2-my_instance-fkfu3epgqhyo | SHUTOFF | -          | Shutdown    | demo-net=172.16.10.6                 |
+| fe10a701-5bb3-441e-8e5a-b2fe8e743bc1 | cirros-demo-1                   | ACTIVE  | -          | Running     | demo-net=172.16.10.2, 192.168.100.21 |
+| 1b9cdcdf-a167-4b1b-89f9-c32af2bfde1a | ubuntu-demo-1                   | ACTIVE  | -          | Running     | demo-net=172.16.10.7, 192.168.100.23 |
++--------------------------------------+---------------------------------+---------+------------+-------------+--------------------------------------+
+</pre>
+
+- Add the nova compute instance as a member of the load balancer pool
+
+<pre>neutron lb-member-create --address 172.16.10.7 --protocol-port 80 my-pool</pre>
+
+- Create a health monitor
+
+<pre>neutron lb-healthmonitor-create --delay 3 --type HTTP --max-retries 3 --timeout 3</pre>
+
+- Confirm by listing the health monitors
+
+<pre>neutron lb-healthmonitor-list</pre>
+
+<pre>
++--------------------------------------+------+----------------+
+| id                                   | type | admin_state_up |
++--------------------------------------+------+----------------+
+| 9f217c8d-5c7d-436f-a485-6ab5b07bfa00 | HTTP | True           |
++--------------------------------------+------+----------------+
+</pre>
+
+- Associate the health monitor with the pool
+
+<pre>neutron lb-healthmonitor-associate 9f217c8d-5c7d-436f-a485-6ab5b07bfa00 my-pool</pre>
+
+- Create a VIP for the pool (using the private subnet again)
+
+<pre>neutron lb-vip-create --name myvip --protocol-port 80 --protocol HTTP --subnet-id d50c6d1f-7ab4-4582-82ca-738415ea1d44 my-pool</pre>
+
+- Confirm by listing the VIPs
+
+<pre>neutron lb-vip-list</pre>
+
+<pre>
++--------------------------------------+---------+---------------+----------+----------------+--------+
+| id                                   | name    | address       | protocol | admin_state_up | status |
++--------------------------------------+---------+---------------+----------+----------------+--------+
+| 6b5ee27a-61b9-4a15-9b26-27620f9490bd | myvip   | 172.16.10.101 | HTTP     | True           | ACTIVE |
++--------------------------------------+---------+---------------+----------+----------------+--------+
+</pre>
+
+- Lookup an available floating IP within neutron (if need be, assign a new one)
+
+<pre>neutron floatingip-list</pre>
+
+<pre>
++--------------------------------------+------------------+---------------------+--------------------------------------+
+| id                                   | fixed_ip_address | floating_ip_address | port_id                              |
++--------------------------------------+------------------+---------------------+--------------------------------------+
+| 12898832-b905-45fe-90ad-ec69f9266ba9 | 172.16.10.2      | 192.168.100.21      | e83a675f-0347-4d6e-b4e4-be1aa2f7ae41 |
+| 5a5a1ea0-e43d-4b36-ae7c-87a99c9e5b1c | 172.16.10.100    | 192.168.100.22      | a04b43a5-ee57-4d63-b504-ff95bff97cd1 |
+| 98b15f2f-3b6d-45f7-a7b1-27924f01a4d6 |                  | 192.168.100.24      |                                      |
+| e38dd6bb-6d12-429e-80b9-a71bfda97b0e | 172.16.10.7      | 192.168.100.23      | 6327b2cb-63ee-4d1b-8261-d846c6008814 |
++--------------------------------------+------------------+---------------------+--------------------------------------+
+</pre>
+
+- Here, we can see 192.168.100.24 is available, and it's ID is 98b15f2f-3b6d-45f7-a7b1-27924f01a4d6
+- Lookup the port corresponding to the VIP
+
+<pre>neutron port-list</pre>
+
+<pre>
++--------------------------------------+------------------------------------------+-------------------+--------------------------------------------------------------------------------------+
+| id                                   | name                                     | mac_address       | fixed_ips                                                                            |
++--------------------------------------+------------------------------------------+-------------------+--------------------------------------------------------------------------------------+
+| 2324db59-4a79-4cc1-b416-a281cab1d221 | vip-6b5ee27a-61b9-4a15-9b26-27620f9490bd | fa:16:3e:52:6a:9f | {"subnet_id": "d50c6d1f-7ab4-4582-82ca-738415ea1d44", "ip_address": "172.16.10.101"} |
+| 6327b2cb-63ee-4d1b-8261-d846c6008814 |                                          | fa:16:3e:2c:0e:ca | {"subnet_id": "d50c6d1f-7ab4-4582-82ca-738415ea1d44", "ip_address": "172.16.10.7"}   |
+| 78300abd-aa91-45d5-9d71-0b7dc9a5b027 |                                          | fa:16:3e:43:80:22 | {"subnet_id": "d50c6d1f-7ab4-4582-82ca-738415ea1d44", "ip_address": "172.16.10.6"}   |
+| a04b43a5-ee57-4d63-b504-ff95bff97cd1 | vip-3e815344-73a4-45b9-a3bf-bc1924bf6157 | fa:16:3e:7b:f2:ea | {"subnet_id": "d50c6d1f-7ab4-4582-82ca-738415ea1d44", "ip_address": "172.16.10.100"} |
+| a4d66f9d-b2e7-4e9f-bc19-8b2337982654 |                                          | fa:16:3e:1d:a4:ba | {"subnet_id": "d50c6d1f-7ab4-4582-82ca-738415ea1d44", "ip_address": "172.16.10.3"}   |
+| d0bacc5b-3070-44dc-9480-a0509144be80 |                                          | fa:16:3e:4f:39:c0 | {"subnet_id": "d50c6d1f-7ab4-4582-82ca-738415ea1d44", "ip_address": "172.16.10.1"}   |
+| e83a675f-0347-4d6e-b4e4-be1aa2f7ae41 |                                          | fa:16:3e:46:e6:40 | {"subnet_id": "d50c6d1f-7ab4-4582-82ca-738415ea1d44", "ip_address": "172.16.10.2"}   |
++--------------------------------------+------------------------------------------+-------------------+--------------------------------------------------------------------------------------+
+</pre>
+
+- The VIP is on port 2324db59-4a79-4cc1-b416-a281cab1d221
+- With both the Floating IP ID and the VIP Port ID, assign the floating IP to the VIP within neutron (the syntax is "neutron floatingip-associate floatingIPID portID")
+
+<pre>neutron floatingip-associate 98b15f2f-3b6d-45f7-a7b1-27924f01a4d6 2324db59-4a79-4cc1-b416-a281cab1d221</pre>
+
+- If HTTP 80 is up on the Nova Compute instance and responding to the health monitor, you should now be able to access the HTTP instance using the floating IP (http://192.168.100.24)
