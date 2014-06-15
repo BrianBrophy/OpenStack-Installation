@@ -426,9 +426,9 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 
 <pre>neutron net-list</pre>
 
-- Create tenant subnet (this subnet is hidden behind the Network node, accessible only by the instance VMs)
+- Create tenant subnet (this subnet is hidden behind the Network node, accessible only by the instance VMs).  Note we are reserving an early portion of the address space to be able to use for other things.
 
-<pre>neutron subnet-create demo-net --name demo-subnet --dns-nameserver 8.8.8.8 --gateway 172.16.10.1 172.16.10.0/24</pre>
+<pre>neutron subnet-create demo-net --name demo-subnet --dns-nameserver 8.8.8.8 --allocation-pool start=172.16.10.20,end=172.16.10.254 --gateway 172.16.10.1 172.16.10.0/24</pre>
 
 - Confirm by listing tenant subnets
 
@@ -509,7 +509,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 | id                                   | name     | subnets                                               |
 +--------------------------------------+----------+-------------------------------------------------------+
 | 851b9707-1dbd-43c3-bae2-f10773cce808 | ext-net  | d66bab2c-8b05-4eb9-924a-41653c458018 192.168.100.0/24 |
-| b657514b-1d0d-466b-97f8-19e35d4c7bfe | demo-net | 942213a1-1b4a-4de3-94d2-1dcead1052d0 192.168.150.0/24 |
+| b657514b-1d0d-466b-97f8-19e35d4c7bfe | demo-net | 942213a1-1b4a-4de3-94d2-1dcead1052d0 172.16.10.0/24   |
 +--------------------------------------+----------+-------------------------------------------------------+
 </pre>
 
