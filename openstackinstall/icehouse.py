@@ -257,6 +257,9 @@ def install_horizon():
   print ''
   osicommon.log('Installing Horizon')
   osicommon.run_command("apt-get install -y apache2 openstack-dashboard memcached", True)
+  # Enable LBaaS within dashboard
+  enableLBaaSCmd = "sed -i " + '"' + "s/'enable_lb'\:\s*False/'enable_lb'\: True/" + '"' + " /etc/openstack-dashboard/local_settings.py"
+  osicommon.run_command(enableLBaaSCmd)
   osicommon.run_command("service apache2 restart", True)
   osicommon.run_command("service memcached restart", True)
   osicommon.log('Completed Horizon')
@@ -551,7 +554,7 @@ def install_neutron_on_control_node(databaseUserPassword, controlNodeIP, mySQLPa
   service_tenant = osicommon.run_command("keystone tenant-list | grep service | awk '{print $2}'")
   neutronConf = '/etc/neutron/neutron.conf'
   osicommon.set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'ml2')
-  osicommon.set_config_ini(neutronConf, 'DEFAULT', 'service_plugins', 'router')
+  osicommon.set_config_ini(neutronConf, 'DEFAULT', 'service_plugins', 'router,lbaas')
   osicommon.set_config_ini(neutronConf, 'DEFAULT', 'verbose', 'False')
   osicommon.set_config_ini(neutronConf, 'DEFAULT', 'debug', 'False')
   osicommon.set_config_ini(neutronConf, 'DEFAULT', 'auth_strategy', 'keystone')
@@ -616,11 +619,11 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   #osicommon.run_command("ovs-vsctl --may-exist add-port br-eth2 eth2" , True)
   osicommon.run_command("ovs-vsctl --may-exist add-br br-ex" , True)
   osicommon.run_command("ovs-vsctl --may-exist add-port br-ex " + networkNodeExternalNetworkInterface , True)
-  osicommon.run_command("apt-get install -y neutron-plugin-openvswitch-agent neutron-dhcp-agent neutron-l3-agent neutron-metadata-agent" , True)
+  osicommon.run_command("apt-get install -y neutron-plugin-openvswitch-agent neutron-dhcp-agent neutron-l3-agent neutron-metadata-agent neutron-lbaas-agent haproxy" , True)
   osicommon.log('Configuring Neutron')
   neutronConf = '/etc/neutron/neutron.conf'
   osicommon.set_config_ini(neutronConf, 'DEFAULT', 'core_plugin', 'ml2')
-  osicommon.set_config_ini(neutronConf, 'DEFAULT', 'service_plugins', 'router')
+  osicommon.set_config_ini(neutronConf, 'DEFAULT', 'service_plugins', 'router,lbaas')
   osicommon.set_config_ini(neutronConf, 'DEFAULT', 'verbose', 'False')
   osicommon.set_config_ini(neutronConf, 'DEFAULT', 'debug', 'False')
   osicommon.set_config_ini(neutronConf, 'DEFAULT', 'auth_strategy', 'keystone')
@@ -674,6 +677,9 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   neutronL3AgentConf = '/etc/neutron/l3_agent.ini'
   osicommon.set_config_ini(neutronL3AgentConf, 'DEFAULT', 'interface_driver', 'neutron.agent.linux.interface.OVSInterfaceDriver')
   osicommon.set_config_ini(neutronL3AgentConf, 'DEFAULT', 'use_namespaces', 'True')
+  neutronLbaasAgentConf = '/etc/neutron/lbaas_agent.ini'
+  osicommon.set_config_ini(neutronLbaasAgentConf, 'DEFAULT', 'device_driver', 'neutron.services.loadbalancer.drivers.haproxy.namespace_driver.HaproxyNSDriver')
+  osicommon.set_config_ini(neutronLbaasAgentConf, 'DEFAULT', 'interface_driver', 'neutron.agent.linux.interface.OVSInterfaceDriver')
   # iptables rule to get VM/Instance to Internet working
   # /etc/rc.local so rule is set on boot
   providerExternalNetworkCIDREscaped = str(providerExternalNetworkCIDR)
@@ -687,6 +693,7 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   osicommon.run_command("service neutron-dhcp-agent restart", True)
   osicommon.run_command("service neutron-l3-agent restart", True)
   osicommon.run_command("service neutron-metadata-agent restart", True)
+  osicommon.run_command("service neutron-lbaas-agent restart", True)
   osicommon.log('Completed Neutron')
 #######################################################################
 
