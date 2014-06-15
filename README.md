@@ -828,7 +828,7 @@ resources:
 +--------------------------------------+---------+---------------+----------+----------------+--------+
 </pre>
 
-- Lookup an available floating IP within neutron (if need be, assign a new one)
+- Lookup an available floating IP within neutron (if need be, assign a new one using "nova floating-ip-create ext-net")
 
 <pre>neutron floatingip-list</pre>
 
