@@ -917,6 +917,9 @@ resources:
       networks:
         - network: { get_param: network }
       security_groups: [ { get_param: securityGroups } ]
+      user_data: |
+        #!/bin/bash -v
+        sudo apt-get install -y apache2
   web2:
     type: OS::Nova::Server
     properties:
@@ -926,6 +929,9 @@ resources:
       networks:
         - network: { get_param: network }
       security_groups: [ { get_param: securityGroups } ]
+      user_data: |
+        #!/bin/bash -v
+        sudo apt-get install -y apache2
   monitor:
     type: OS::Neutron::HealthMonitor
     properties:
@@ -994,6 +1000,52 @@ outputs:
 +--------------------------------------+---------------+------------------+-------------------------------------------------------+
 </pre>
 
-- Now, we can launch the Heat stack.  Note, I am simply using the CirrOS image to show how orchestration of two web servers and a load balancer could be done ... if you wanted this to work end-to-end you would have to boot the Ubuntu image and also install Apache to get the web servers running.
+- Now, we can launch the Heat stack.  Note, the stack will complete pretty quickly and Nova will report that the web servers are RUNNING, but this just means they are powered on.  It takes a little time for them to boot, complete loud-init, and run the script to load Apache.  So, the load balancer will be created and monitoring ... and once Apache is loaded on the web servers, the load balancer will be online.
 
-<pre>heat stack-create -f heat-lbaas.yaml -P "image=CirrOS 0.3.2 x86_64;flavor=m1.tiny;keyName=brian-key;securityGroups=default;network=demo-net;subnetID=d50c6d1f-7ab4-4582-82ca-738415ea1d44;floatingNetworkID=ccc09149-514b-4d2b-8aa6-f36b1bf6c4a9" lbaas-stack</pre>
+<pre>heat stack-create -f heat-ubuntu-lbaas.yaml -P "image=Ubuntu 12.04 x86_64;flavor=m1.small;keyName=brian-key;securityGroups=default;network=demo-net;subnetID=d50c6d1f-7ab4-4582-82ca-738415ea1d44;floatingNetworkID=ccc09149-514b-4d2b-8aa6-f36b1bf6c4a9" lbaas-ubuntu-stack</pre>
+
+- When the stack completes, use the "heat stack-show" command to see the details, including within the "outputs" section the resulting floating IP that was assigned to the load balancer VIP.
+
+<pre>heat stack-show lbaas-ubuntu-stack</pre>
+
+<pre>
++----------------------+----------------------------------------------------------------------------------------------------------------------------+
+| Property             | Value                                                                                                                      |
++----------------------+----------------------------------------------------------------------------------------------------------------------------+
+| capabilities         | []                                                                                                                         |
+| creation_time        | 2014-06-15T18:14:14Z                                                                                                       |
+| description          | Simple template to deploy two compute instances and a                                                                      |
+|                      | load balancer                                                                                                              |
+| disable_rollback     | True                                                                                                                       |
+| id                   | 2346c7bd-a99d-4832-ad1a-7ec51d1e9ead                                                                                       |
+| links                | http://10.10.10.21:8004/v1/108c15d508e246969c22004047511949/stacks/lbaas-ubuntu-stack/2346c7bd-a99d-4832-ad1a-7ec51d1e9ead |
+| notification_topics  | []                                                                                                                         |
+| outputs              | [                                                                                                                          |
+|                      |   {                                                                                                                        |
+|                      |     "output_value": "http://192.168.100.28:80",                                                                            |
+|                      |     "description": "Load Balancer VIP assigned",                                                                           |
+|                      |     "output_key": "LoadBalancerVIP"                                                                                        |
+|                      |   }                                                                                                                        |
+|                      | ]                                                                                                                          |
+| parameters           | {                                                                                                                          |
+|                      |   "floatingNetworkID": "ccc09149-514b-4d2b-8aa6-f36b1bf6c4a9",                                                             |
+|                      |   "OS::stack_id": "2346c7bd-a99d-4832-ad1a-7ec51d1e9ead",                                                                  |
+|                      |   "OS::stack_name": "lbaas-ubuntu-stack",                                                                                  |
+|                      |   "image": "Ubuntu 12.04 x86_64",                                                                                          |
+|                      |   "keyName": "brian-key",                                                                                                  |
+|                      |   "securityGroups": "default",                                                                                             |
+|                      |   "subnetID": "d50c6d1f-7ab4-4582-82ca-738415ea1d44",                                                                      |
+|                      |   "flavor": "m1.small",                                                                                                    |
+|                      |   "network": "demo-net"                                                                                                    |
+|                      | }                                                                                                                          |
+| stack_name           | lbaas-ubuntu-stack                                                                                                         |
+| stack_status         | CREATE_COMPLETE                                                                                                            |
+| stack_status_reason  | Stack CREATE completed successfully                                                                                        |
+| template_description | Simple template to deploy two compute instances and a                                                                      |
+|                      | load balancer                                                                                                              |
+| timeout_mins         | 60                                                                                                                         |
+| updated_time         | None                                                                                                                       |
++----------------------+----------------------------------------------------------------------------------------------------------------------------+
+</pre>
+
+- Here, we see the resulting Load Balancer VIP URL is http://192.168.100.28:80
