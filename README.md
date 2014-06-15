@@ -868,3 +868,132 @@ resources:
 <pre>neutron floatingip-associate 98b15f2f-3b6d-45f7-a7b1-27924f01a4d6 2324db59-4a79-4cc1-b416-a281cab1d221</pre>
 
 - If HTTP 80 is up on the Nova Compute instance and responding to the health monitor, you should now be able to access the HTTP instance using the floating IP (http://192.168.100.24)
+
+## Heat Template For Two Web Servers and a Load Balancer
+- First, we need to define a Heat template file (called something like heat-lbaas.yaml)
+
+<pre>
+heat_template_version: 2013-05-23
+
+description: Simple template to deploy two compute instances and a load balancer
+
+parameters:
+  keyName:
+    type: string
+    label: Key Name
+    description: Name of key-pair to be used for compute instance
+  image:
+    type: string
+    label: Image
+    description: Image to be used for compute instance
+  flavor:
+    type: string
+    label: Flavor
+    description: Type of instance (flavor) to be used
+  floatingNetworkID:
+    type: string
+    label: Floating IP Network ID
+    description: Network to use for floating IPs
+  network:
+    type: string
+    label: Network
+    description: Network to use for compute instance
+  securityGroups:
+    type: string
+    label: Security Groups
+    description: Security Groups to use for compute instance
+  subnetID:
+    type: string
+    label: Subnet ID
+    description: Subnet to use for load balancer
+
+resources:
+  web1:
+    type: OS::Nova::Server
+    properties:
+      key_name: { get_param: keyName }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - network: { get_param: network }
+      security_groups: [ { get_param: securityGroups } ]
+  web2:
+    type: OS::Nova::Server
+    properties:
+      key_name: { get_param: keyName }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - network: { get_param: network }
+      security_groups: [ { get_param: securityGroups } ]
+  monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: HTTP
+      delay: 3
+      max_retries: 5
+      timeout: 5
+      http_method: GET
+      url_path: /
+  pool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: HTTP
+      monitors: [ { get_resource: monitor } ]
+      subnet_id: { get_param: subnetID }
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: 80
+  lb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      members: [ { get_resource: web1 }, { get_resource: web2 } ]
+      protocol_port: 80
+      pool_id: { get_resource: pool }
+  lbFloatingIP:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: floatingNetworkID }
+  lbFloatingIPAssociation:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: lbFloatingIP }
+      port_id: { get_attr: [ pool, vip, port_id ] }
+
+outputs:
+  LoadBalancerVIP:
+    description: Load Balancer VIP assigned
+    value:
+      str_replace:
+        template: 'http://loadbalancer:80'
+        params:
+          loadbalancer: { get_attr: [lbFloatingIP, floating_ip_address] }
+</pre>
+
+- Then, we need to lookup some information (IDs of the external network and subnet on the internal network) to be able to pass into the template
+
+<pre>neutron net-list</pre>
+
+<pre>
++--------------------------------------+----------+-------------------------------------------------------+
+| id                                   | name     | subnets                                               |
++--------------------------------------+----------+-------------------------------------------------------+
+| ccc09149-514b-4d2b-8aa6-f36b1bf6c4a9 | ext-net  | 2150f65f-969a-4e46-87db-79895849fc88 192.168.100.0/24 |
+| e4782f2d-31bb-4125-a499-6c0887cd3897 | demo-net | d50c6d1f-7ab4-4582-82ca-738415ea1d44 172.16.10.0/24   |
++--------------------------------------+----------+-------------------------------------------------------+
+</pre>
+
+<pre>neutron subnet-list</pre>
+
+<pre>
++--------------------------------------+---------------+------------------+-------------------------------------------------------+
+| id                                   | name          | cidr             | allocation_pools                                      |
++--------------------------------------+---------------+------------------+-------------------------------------------------------+
+| 2150f65f-969a-4e46-87db-79895849fc88 | ext-subnet    | 192.168.100.0/24 | {"start": "192.168.100.20", "end": "192.168.100.254"} |
+| d50c6d1f-7ab4-4582-82ca-738415ea1d44 | demo-subnet   | 172.16.10.0/24   | {"start": "172.16.10.2", "end": "172.16.10.254"}      |
++--------------------------------------+---------------+------------------+-------------------------------------------------------+
+</pre>
+
+- Now, we can launch the Heat stack.  Note, I am simply using the CirrOS image to show how orchestration of two web servers and a load balancer could be done ... if you wanted this to work end-to-end you would have to boot the Ubuntu image and also install Apache to get the web servers running.
+
+<pre>heat stack-create -f heat-lbaas.yaml -P "image=CirrOS 0.3.2 x86_64;flavor=m1.tiny;keyName=brian-key;securityGroups=default;network=demo-net;subnetID=d50c6d1f-7ab4-4582-82ca-738415ea1d44;floatingNetworkID=ccc09149-514b-4d2b-8aa6-f36b1bf6c4a9" lbaas-stack</pre>
