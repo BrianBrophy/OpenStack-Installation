@@ -875,7 +875,7 @@ resources:
 <pre>
 heat_template_version: 2013-05-23
 
-description: Simple template to deploy two compute instances and a load balancer
+description: Template to deploy two compute instances as web servers and a load balancer
 
 parameters:
   keyName:
@@ -894,45 +894,64 @@ parameters:
     type: string
     label: Floating IP Network ID
     description: Network to use for floating IPs
-  network:
+  networkID:
     type: string
     label: Network
     description: Network to use for compute instance
-  securityGroups:
-    type: string
-    label: Security Groups
-    description: Security Groups to use for compute instance
   subnetID:
     type: string
     label: Subnet ID
     description: Subnet to use for load balancer
 
 resources:
-  web1:
+  web-server-security-group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: web-server-security-group
+      rules: [
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: tcp,
+        port_range_min: 22,
+        port_range_max: 22},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: tcp,
+        port_range_min: 80,
+        port_range_max: 80},
+        {remote_ip_prefix: 0.0.0.0/0,
+        protocol: icmp}]
+  web-server-1-port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: networkID }
+      security_groups: [{ get_resource: web-server-security-group }]
+  web-server-2-port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: networkID }
+      security_groups: [{ get_resource: web-server-security-group }]
+  web-server-1:
     type: OS::Nova::Server
     properties:
       key_name: { get_param: keyName }
       image: { get_param: image }
       flavor: { get_param: flavor }
       networks:
-        - network: { get_param: network }
-      security_groups: [ { get_param: securityGroups } ]
+        - port: { get_resource: web-server-1-port }
       user_data: |
         #!/bin/bash -v
         sudo apt-get install -y apache2
-  web2:
+  web-server-2:
     type: OS::Nova::Server
     properties:
       key_name: { get_param: keyName }
       image: { get_param: image }
       flavor: { get_param: flavor }
       networks:
-        - network: { get_param: network }
-      security_groups: [ { get_param: securityGroups } ]
+        - port: { get_resource: web-server-2-port }
       user_data: |
         #!/bin/bash -v
         sudo apt-get install -y apache2
-  monitor:
+  http-health-monitor:
     type: OS::Neutron::HealthMonitor
     properties:
       type: HTTP
@@ -941,30 +960,30 @@ resources:
       timeout: 5
       http_method: GET
       url_path: /
-  pool:
+  load-balancer-http-pool:
     type: OS::Neutron::Pool
     properties:
       protocol: HTTP
-      monitors: [ { get_resource: monitor } ]
+      monitors: [ { get_resource: http-health-monitor } ]
       subnet_id: { get_param: subnetID }
       lb_method: ROUND_ROBIN
       vip:
         protocol_port: 80
-  lb:
+  load-balancer-http:
     type: OS::Neutron::LoadBalancer
     properties:
-      members: [ { get_resource: web1 }, { get_resource: web2 } ]
+      members: [ { get_resource: web-server-1 }, { get_resource: web-server-2 } ]
       protocol_port: 80
-      pool_id: { get_resource: pool }
-  lbFloatingIP:
+      pool_id: { get_resource: load-balancer-http-pool }
+  load-balancer-http-vip:
     type: OS::Neutron::FloatingIP
     properties:
       floating_network_id: { get_param: floatingNetworkID }
-  lbFloatingIPAssociation:
+  load-balancer-http-vip-association:
     type: OS::Neutron::FloatingIPAssociation
     properties:
-      floatingip_id: { get_resource: lbFloatingIP }
-      port_id: { get_attr: [ pool, vip, port_id ] }
+      floatingip_id: { get_resource: load-balancer-http-vip }
+      port_id: { get_attr: [ load-balancer-http-pool, vip, port_id ] }
 
 outputs:
   LoadBalancerVIP:
@@ -973,10 +992,10 @@ outputs:
       str_replace:
         template: 'http://loadbalancer:80'
         params:
-          loadbalancer: { get_attr: [lbFloatingIP, floating_ip_address] }
+          loadbalancer: { get_attr: [load-balancer-http-vip, floating_ip_address] }
 </pre>
 
-- Then, we need to lookup some information (IDs of the external network and subnet on the internal network) to be able to pass into the template
+- Then, we need to lookup some information (IDs of the networks and subnet on the internal network) to be able to pass into the template
 
 <pre>neutron net-list</pre>
 
@@ -984,25 +1003,25 @@ outputs:
 +--------------------------------------+----------+-------------------------------------------------------+
 | id                                   | name     | subnets                                               |
 +--------------------------------------+----------+-------------------------------------------------------+
-| ccc09149-514b-4d2b-8aa6-f36b1bf6c4a9 | ext-net  | 2150f65f-969a-4e46-87db-79895849fc88 192.168.100.0/24 |
-| e4782f2d-31bb-4125-a499-6c0887cd3897 | demo-net | d50c6d1f-7ab4-4582-82ca-738415ea1d44 172.16.10.0/24   |
+| 1c46bbdd-bb6b-4edb-8bf8-97e2c11f6c23 | demo-net | b95589c2-6ade-4e4f-89e4-1d130e15dbc2 172.16.10.0/24   |
+| 3f64f785-619f-4fed-bad4-b81074782a0d | ext-net  | 2a8eb36b-793f-4633-a565-18528ca5d392 192.168.100.0/24 |
 +--------------------------------------+----------+-------------------------------------------------------+
 </pre>
 
 <pre>neutron subnet-list</pre>
 
 <pre>
-+--------------------------------------+---------------+------------------+-------------------------------------------------------+
-| id                                   | name          | cidr             | allocation_pools                                      |
-+--------------------------------------+---------------+------------------+-------------------------------------------------------+
-| 2150f65f-969a-4e46-87db-79895849fc88 | ext-subnet    | 192.168.100.0/24 | {"start": "192.168.100.20", "end": "192.168.100.254"} |
-| d50c6d1f-7ab4-4582-82ca-738415ea1d44 | demo-subnet   | 172.16.10.0/24   | {"start": "172.16.10.2", "end": "172.16.10.254"}      |
-+--------------------------------------+---------------+------------------+-------------------------------------------------------+
++--------------------------------------+-------------+------------------+-------------------------------------------------------+
+| id                                   | name        | cidr             | allocation_pools                                      |
++--------------------------------------+-------------+------------------+-------------------------------------------------------+
+| 2a8eb36b-793f-4633-a565-18528ca5d392 | ext-subnet  | 192.168.100.0/24 | {"start": "192.168.100.20", "end": "192.168.100.254"} |
+| b95589c2-6ade-4e4f-89e4-1d130e15dbc2 | demo-subnet | 172.16.10.0/24   | {"start": "172.16.10.20", "end": "172.16.10.254"}     |
++--------------------------------------+-------------+------------------+-------------------------------------------------------+
 </pre>
 
 - Now, we can launch the Heat stack.  Note, the stack will complete pretty quickly and Nova will report that the web servers are RUNNING, but this just means they are powered on.  It takes a little time for them to boot, complete loud-init, and run the script to load Apache.  So, the load balancer will be created and monitoring ... and once Apache is loaded on the web servers, the load balancer will be online.
 
-<pre>heat stack-create -f heat-ubuntu-lbaas.yaml -P "image=Ubuntu 12.04 x86_64;flavor=m1.small;keyName=brian-key;securityGroups=default;network=demo-net;subnetID=d50c6d1f-7ab4-4582-82ca-738415ea1d44;floatingNetworkID=ccc09149-514b-4d2b-8aa6-f36b1bf6c4a9" lbaas-ubuntu-stack</pre>
+<pre>heat stack-create -f heat-ubuntu-lbaas.yaml -P "image=Ubuntu 12.04 x86_64;flavor=m1.small;keyName=brian-key;networkID=1c46bbdd-bb6b-4edb-8bf8-97e2c11f6c23;subnetID=b95589c2-6ade-4e4f-89e4-1d130e15dbc2;floatingNetworkID=3f64f785-619f-4fed-bad4-b81074782a0d" lbaas-ubuntu-stack</pre>
 
 - When the stack completes, use the "heat stack-show" command to see the details, including within the "outputs" section the resulting floating IP that was assigned to the load balancer VIP.
 
@@ -1013,39 +1032,38 @@ outputs:
 | Property             | Value                                                                                                                      |
 +----------------------+----------------------------------------------------------------------------------------------------------------------------+
 | capabilities         | []                                                                                                                         |
-| creation_time        | 2014-06-15T18:14:14Z                                                                                                       |
-| description          | Simple template to deploy two compute instances and a                                                                      |
-|                      | load balancer                                                                                                              |
+| creation_time        | 2014-06-16T11:13:17Z                                                                                                       |
+| description          | Template to deploy two compute instances as web servers                                                                    |
+|                      | and a load balancer                                                                                                        |
 | disable_rollback     | True                                                                                                                       |
-| id                   | 2346c7bd-a99d-4832-ad1a-7ec51d1e9ead                                                                                       |
-| links                | http://10.10.10.21:8004/v1/108c15d508e246969c22004047511949/stacks/lbaas-ubuntu-stack/2346c7bd-a99d-4832-ad1a-7ec51d1e9ead |
+| id                   | d86e23f6-cb9c-4471-85f1-cf0aea1319f6                                                                                       |
+| links                | http://10.10.10.21:8004/v1/164f35d45e1946bb8c9cd06fa6ff0f07/stacks/lbaas-ubuntu-stack/d86e23f6-cb9c-4471-85f1-cf0aea1319f6 |
 | notification_topics  | []                                                                                                                         |
 | outputs              | [                                                                                                                          |
 |                      |   {                                                                                                                        |
-|                      |     "output_value": "http://192.168.100.28:80",                                                                            |
+|                      |     "output_value": "http://192.168.100.22:80",                                                                            |
 |                      |     "description": "Load Balancer VIP assigned",                                                                           |
 |                      |     "output_key": "LoadBalancerVIP"                                                                                        |
 |                      |   }                                                                                                                        |
 |                      | ]                                                                                                                          |
 | parameters           | {                                                                                                                          |
-|                      |   "floatingNetworkID": "ccc09149-514b-4d2b-8aa6-f36b1bf6c4a9",                                                             |
-|                      |   "OS::stack_id": "2346c7bd-a99d-4832-ad1a-7ec51d1e9ead",                                                                  |
+|                      |   "networkID": "1c46bbdd-bb6b-4edb-8bf8-97e2c11f6c23",                                                                     |
+|                      |   "floatingNetworkID": "3f64f785-619f-4fed-bad4-b81074782a0d",                                                             |
+|                      |   "OS::stack_id": "d86e23f6-cb9c-4471-85f1-cf0aea1319f6",                                                                  |
 |                      |   "OS::stack_name": "lbaas-ubuntu-stack",                                                                                  |
 |                      |   "image": "Ubuntu 12.04 x86_64",                                                                                          |
 |                      |   "keyName": "brian-key",                                                                                                  |
-|                      |   "securityGroups": "default",                                                                                             |
-|                      |   "subnetID": "d50c6d1f-7ab4-4582-82ca-738415ea1d44",                                                                      |
-|                      |   "flavor": "m1.small",                                                                                                    |
-|                      |   "network": "demo-net"                                                                                                    |
+|                      |   "subnetID": "b95589c2-6ade-4e4f-89e4-1d130e15dbc2",                                                                      |
+|                      |   "flavor": "m1.small"                                                                                                     |
 |                      | }                                                                                                                          |
 | stack_name           | lbaas-ubuntu-stack                                                                                                         |
 | stack_status         | CREATE_COMPLETE                                                                                                            |
 | stack_status_reason  | Stack CREATE completed successfully                                                                                        |
-| template_description | Simple template to deploy two compute instances and a                                                                      |
-|                      | load balancer                                                                                                              |
+| template_description | Template to deploy two compute instances as web servers                                                                    |
+|                      | and a load balancer                                                                                                        |
 | timeout_mins         | 60                                                                                                                         |
 | updated_time         | None                                                                                                                       |
 +----------------------+----------------------------------------------------------------------------------------------------------------------------+
 </pre>
 
-- Here, we see the resulting Load Balancer VIP URL is http://192.168.100.28:80
+- Here, we see the resulting Load Balancer VIP URL is http://192.168.100.22:80
