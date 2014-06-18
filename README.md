@@ -301,7 +301,7 @@ iface eth2 inet dhcp
 <pre>source /root/openstack-admin.rc</pre>
 
 
-## Adding CirrOS Image to Glance
+## Adding Images to Glance
 - Load the CirrOS image
 
 <pre>glance image-create --name 'CirrOS 0.3.2 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://download.cirros-cloud.net/0.3.2/cirros-0.3.2-x86_64-disk.img</pre>
@@ -309,6 +309,10 @@ iface eth2 inet dhcp
 - Load Ubuntu 12.04 Image
 
 <pre>glance image-create --name 'Ubuntu 12.04 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://uec-images.ubuntu.com/precise/current/precise-server-cloudimg-amd64-disk1.img</pre>
+
+- Load the CentOS 6.5 Image
+
+<pre>glance image-create --name 'CentOS 6.5 x86_64' --is-public=true --container-format=bare --disk-format=qcow2 --location http://repos.fedorapeople.org/repos/openstack/guest-images/centos-6.5-20140117.0.x86_64.qcow2</pre>
 
 - Confirm by listing Glance images
 
@@ -561,7 +565,7 @@ export OS_AUTH_URL=http://10.10.10.21:5000/v2.0
 - From Windows, you can use PuTTY's puttygen executable to convert the private key to a PuTTY private key (*.ppk) file and then within your PuTTY session, be sure to configure Connection - Data - Auto login username as well as Connection - SSH - Auth - Private key file for authentication and then you should be able to SSH to the floating IP.
 
 - If testing the CirrOS image, the SSH key pair is setup for the cirros user
-- If testing the CentOS image, the SSH key pair is setup for the root user
+- If testing the CentOS image, the SSH key pair is setup for the cloud-user user
 
 ## Working With Block Storage (Cinder)
 - Login to root on the Controller node and ensure the cinder-volumes volume group exists in LVM.  If it does not exist, configure the volume group within LVM (just the volume group, no need to setup any logical volumes because Cinder will manage them).
