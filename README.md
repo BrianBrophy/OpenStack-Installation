@@ -15,6 +15,8 @@ Within VirtualBox, go to File - Preferences to bring up Settings, then Network a
 | vboxnet1  | Host-Only Ethernet Adapter #3  | Instances/VMs          | 10.20.20.1    | 255.255.255.0  | Disabled |
 | vboxnet2  | Host-Only Ethernet Adapter #4  | External/Floating IPs  | 192.168.100.1 | 255.255.255.0  | Disabled |
 
+![Network](https://github.com/BrianBrophy/OpenStack-Installation/blob/master/Network.jpg "Network")
+
 
 ## Control Node
 The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neutron, Nova, Cinder, Heat, and Horizon.
