@@ -203,7 +203,7 @@ def install_heat(databaseUserPassword, controlNodeIP, mySQLPassword):
   osicommon.set_config_ini(heatConf, 'keystone_authtoken', 'keystone_ec2_uri', "http://%s:35357/v2.0" %controlNodeIP)
   heatApiPasteConf = '/etc/heat/api-paste.ini'
   osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_host', controlNodeIP)
-  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_port', '5000')
+  osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_port', '35357')
   osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_protocol', 'http')
   osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'auth_uri', "http://%s:5000/v2.0" %controlNodeIP)
   osicommon.set_config_ini(heatApiPasteConf, 'filter:authtoken', 'admin_tenant_name', 'service')
@@ -511,7 +511,7 @@ def install_neutron_on_compute_node(databaseUserPassword, controlNodeIP, compute
   osicommon.set_config_ini(neutronConf, 'keystone_authtoken', 'admin_password', 'neutron')
   neutronPasteConf = '/etc/neutron/api-paste.ini'
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_host', controlNodeIP)
-  osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_port', '5000')
+  osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_port', '35357')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_protocol', 'http')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_tenant_name', 'service')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_user', 'neutron')
@@ -582,7 +582,7 @@ def install_neutron_on_control_node(databaseUserPassword, controlNodeIP, mySQLPa
   osicommon.set_config_ini(neutronConf, 'keystone_authtoken', 'admin_password', 'neutron')
   neutronPasteConf = '/etc/neutron/api-paste.ini'
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_host', controlNodeIP)
-  osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_port', '5000')
+  osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_port', '35357')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_protocol', 'http')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_tenant_name', 'service')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_user', 'neutron')
@@ -645,7 +645,7 @@ def install_neutron_on_network_node(databaseUserPassword, controlNodeIP, network
   osicommon.remove_config_ini(neutronConf, 'database', 'connection')
   neutronPasteConf = '/etc/neutron/api-paste.ini'
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_host', controlNodeIP)
-  osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_port', '5000')
+  osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_port', '35357')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'auth_protocol', 'http')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_tenant_name', 'service')
   osicommon.set_config_ini(neutronPasteConf, 'filter:authtoken', 'admin_user', 'neutron')
@@ -783,7 +783,7 @@ def install_nova_on_compute_node(databaseUserPassword, controlNodeIP, computeNod
   osicommon.set_config_ini(novaConf, 'neutron', 'admin_password', 'neutron')
   novaPasteApiConf = '/etc/nova/api-paste.ini'
   osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_host', controlNodeIP)
-  osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_port', '5000')
+  osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_port', '35357')
   osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_protocol', 'http')
   osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'admin_tenant_name', 'service')
   osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'admin_user', 'nova')
@@ -875,7 +875,7 @@ def install_nova_on_control_node(databaseUserPassword, controlNodeIP, mySQLPassw
   osicommon.set_config_ini(novaConf, 'neutron', 'metadata_proxy_shared_secret', 'helloOpenStack')
   novaPasteApiConf = '/etc/nova/api-paste.ini'
   osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_host', controlNodeIP)
-  osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_port', '5000')
+  osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_port', '35357')
   osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'auth_protocol', 'http')
   osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'admin_tenant_name', 'service')
   osicommon.set_config_ini(novaPasteApiConf, 'filter:authtoken', 'admin_user', 'nova')
