@@ -777,7 +777,7 @@ def install_nova_on_compute_node(databaseUserPassword, controlNodeIP, computeNod
   osicommon.set_config_ini(novaConf, 'keystone_authtoken', 'admin_password', 'nova')
   osicommon.set_config_ini(novaConf, 'neutron', 'url', "http://%s:9696" %controlNodeIP)
   osicommon.set_config_ini(novaConf, 'neutron', 'auth_strategy', 'keystone')
-  osicommon.set_config_ini(novaConf, 'neutron', 'admin_auth_url', "http://%s::35357/v2.0" %controlNodeIP)
+  osicommon.set_config_ini(novaConf, 'neutron', 'admin_auth_url', "http://%s:35357/v2.0" %controlNodeIP)
   osicommon.set_config_ini(novaConf, 'neutron', 'admin_tenant_name', 'service')
   osicommon.set_config_ini(novaConf, 'neutron', 'admin_username', 'neutron')
   osicommon.set_config_ini(novaConf, 'neutron', 'admin_password', 'neutron')
