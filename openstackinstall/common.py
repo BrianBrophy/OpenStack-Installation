@@ -57,6 +57,25 @@ def log(message):
 
 
 #######################################################################
+def remove_config_ini(filePath, section, key):
+  if not os.path.exists(filePath):
+    raise Exception("Unable to remove config key in INI, file " + str(filePath) + " does not exist")
+  if not os.path.isfile(filePath):
+    raise Exception("Unable to remove config key in INI, path " + str(filePath) + " is not a file")
+  global iniparse
+  if iniparse is None:
+    iniparse = __import__('iniparse')
+  config = iniparse.ConfigParser()
+  config.readfp(open(filePath))
+  if config.has_section(section):
+    if config.has_option(section, key):
+      config.remove_option(section, key)
+  with open(filePath, 'w') as f:
+    config.write(f)
+#######################################################################
+
+
+#######################################################################
 def run_command(command, display=False):
   if not command or command is None:
     raise Exception("Unable to run command, no command specified")
