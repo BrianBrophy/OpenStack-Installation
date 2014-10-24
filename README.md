@@ -187,9 +187,9 @@ iface eth3 inet dhcp
 
 - As root, start networking: 
 
-<pre>ifup eth0
-ifup eth1
-ifup eth2</pre>
+<pre>ifup eth0</pre>
+<pre>ifup eth1</pre>
+<pre>ifup eth2</pre>
 
 - You should now be able to SSH into the VM on the 10.10.10.x address you assigned
 
@@ -277,8 +277,8 @@ iface eth2 inet dhcp
 
 - As root, start networking: 
 
-<pre>ifup eth0
-ifup eth1</pre>
+<pre>ifup eth0</pre>
+<pre>ifup eth1</pre>
 
 - You should now be able to SSH into the VM on the 10.10.10.x address you assigned
 
@@ -1033,10 +1033,10 @@ outputs:
 
 - Now, we can launch the Heat stack.  Note, the stack will complete pretty quickly and Nova will report that the web servers are RUNNING, but this just means they are powered on.  It takes a little time for them to boot, complete cloud-init, and run the script to load Apache.  So, the load balancer will be created and monitoring ... and once Apache is loaded on the web servers, the load balancer will be online.
 
-<pre>demoNet=$(neutron net-list | grep demo-net | awk '{print $2;}')
-extNet=$(neutron net-list | grep ext-net | awk '{print $2;}')
-demoSubnet=$(neutron subnet-list | grep demo-subnet | awk '{print $2;}')
-heat stack-create -f heat-ubuntu-lbaas.yaml -P "image=Ubuntu 12.04 x86_64;flavor=m1.small;keyName=brian-key;networkID=$demoNet;subnetID=$demoSubnet;floatingNetworkID=$extNet" lbaas-ubuntu-stack</pre>
+<pre>demoNet=$(neutron net-list | grep demo-net | awk '{print $2;}')</pre>
+<pre>extNet=$(neutron net-list | grep ext-net | awk '{print $2;}')</pre>
+<pre>demoSubnet=$(neutron subnet-list | grep demo-subnet | awk '{print $2;}')</pre>
+<pre>heat stack-create -f heat-ubuntu-lbaas.yaml -P "image=Ubuntu 12.04 x86_64;flavor=m1.small;keyName=brian-key;networkID=$demoNet;subnetID=$demoSubnet;floatingNetworkID=$extNet" lbaas-ubuntu-stack</pre>
 
 - When the stack completes, use the "heat stack-show" command to see the details, including within the "outputs" section the resulting floating IP that was assigned to the load balancer VIP.
 
