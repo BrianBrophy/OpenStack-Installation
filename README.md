@@ -1,4 +1,6 @@
 # OpenStack-Installation (Juno)
+If you are interested in Icehouse, see [this](https://github.com/BrianBrophy/OpenStack-Installation/blob/master/README-Icehouse.md).
+
 Scripts to assist with getting up and running on OpenStack with a three node architecture: control, network, compute.
 
 Based on the OpenStack [installation](http://docs.openstack.org/juno/install-guide/install/apt/content/) and [training](http://docs.openstack.org/training-guides/content/) guides as well as [work done previously](https://github.com/romilgupta/openstack-icehouse-scripts) by Romil Gupta.
