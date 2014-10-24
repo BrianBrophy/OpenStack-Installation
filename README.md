@@ -1,9 +1,9 @@
-# OpenStack-Installation
+# OpenStack-Installation (Juno)
 Scripts to assist with getting up and running on OpenStack with a three node architecture: control, network, compute.
 
-Based on the OpenStack [installation](http://docs.openstack.org/icehouse/install-guide/install/apt/content/) and [training](http://docs.openstack.org/training-guides/content/) guides as well as [work done previously](https://github.com/romilgupta/openstack-icehouse-scripts) by Romil Gupta.
+Based on the OpenStack [installation](http://docs.openstack.org/juno/install-guide/install/apt/content/) and [training](http://docs.openstack.org/training-guides/content/) guides as well as [work done previously](https://github.com/romilgupta/openstack-icehouse-scripts) by Romil Gupta.
 
-Tested with [Ubuntu 12.04 LTS Server 64-bit](http://releases.ubuntu.com/precise/ubuntu-12.04.4-server-amd64.iso) running within [VirtualBox 4.3.10](https://www.virtualbox.org/wiki/Downloads).
+Tested with [Ubuntu 14.04 LTS Server 64-bit](http://releases.ubuntu.com/trusty/ubuntu-14.04.1-server-amd64.iso) running within [VirtualBox 4.3.10](https://www.virtualbox.org/wiki/Downloads).
 
 
 ## VirtualBox Host Networks
@@ -27,16 +27,16 @@ The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neut
 - Version: Ubuntu (64-bit)
 - Memory: 2048 MB
 - Processors: 1
-- Video Memory: 16 MB
+- Video Memory: 12 MB
 - Monitor Count: 1
-- Storage: CD/DVD drive on the IDE Controller and a 16 GB disk on the SATA Controller
+- Storage: CD/DVD drive on the IDE Controller and a 20 GB disk on the SATA Controller
 - Audio: Can be disabled
 - Network Adapter 1: vboxnet0: VirtualBox Host-Only Ethernet Adapter #2 (type = Paravirtualized Network with promiscuous mode all)
 - Network Adapter 2: NAT (type = Intel PRO/1000 with promiscuous mode deny).
 
 
 ### OS Installation
-- Boot off the Ubuntu 12.04 Server ISO to begin installation:
+- Boot off the Ubuntu 14.04 Server ISO to begin installation:
 - Select the language and the default menu option of Install Ubuntu Server
 - Configure the keyboard layout
 - For the primary network interface, select the adapter assigned to the Intel chipset
@@ -47,7 +47,7 @@ The OpenStack Control node will run NTP, RabbitMQ, MySQL, Keystone, Glance, Neut
  * 512 MB Primary (mounted as /boot, flagged bootable)
  * 1024 MB Logical (swap)
  * 8.0 GB Logical (used for LVM) and in LVM create a volume group vgroot and volume volroot, assigned to mount as / and formatted for ext4
- * 4 GB Logical (used for LVM) and in LVM create a volume group named cinder-volumes (not formatted nor mounted as it will be managed by OpenStack)
+ * 8 GB Logical (used for LVM) and in LVM create a volume group named cinder-volumes (not formatted nor mounted as it will be managed by OpenStack)
  * (Remainder) Logical (for XFS) but no mounting at this time (we will setup later for object storage)
 - Continue with the installation (base install will proceed)
 - Configure automatic updates (suggest disabling so as not to impact OpenStack)
@@ -76,9 +76,9 @@ auto eth1
 iface eth1 inet dhcp
 </pre>
 
-- As root, restart networking: 
+- As root, start networking: 
 
-<pre>service networking restart</pre>
+<pre>ifup eth0</pre>
 
 - You should now be able to SSH into the VM on the 10.10.10.x address you assigned
 
@@ -92,13 +92,13 @@ iface eth1 inet dhcp
 
 <pre>git clone https://github.com/BrianBrophy/OpenStack-Installation.git</pre>
 
-- Edit icehouse-install.ini and ensure configuration looks good
+- Edit juno-install.ini and ensure configuration looks good
 
-<pre>vi icehouse-install.ini</pre>
+<pre>vi juno-install.ini</pre>
 
 - As root, run the installer:
 
-<pre>python icehouse-setup-control-node.py</pre>
+<pre>python juno-setup-control-node.py</pre>
 
 
 ## Network Node
@@ -109,7 +109,7 @@ The OpenStack Network node will run NTP and Neutron.
 - Version: Ubuntu (64-bit)
 - Memory: 2048 MB
 - Processors: 1
-- Video Memory: 16 MB
+- Video Memory: 12 MB
 - Monitor Count: 1
 - Storage: CD/DVD drive on the IDE Controller and a 8 GB disk on the SATA Controller
 - Audio: Can be disabled
@@ -120,7 +120,7 @@ The OpenStack Network node will run NTP and Neutron.
 
 
 ### OS Installation
-- Boot off the Ubuntu 12.04 Server ISO to begin installation:
+- Boot off the Ubuntu 14.04 Server ISO to begin installation:
 - Select the language and the default menu option of Install Ubuntu Server
 - Configure the keyboard layout
 - For the primary network interface, select the adapter assigned to the Intel chipset
@@ -183,9 +183,11 @@ auto eth3
 iface eth3 inet dhcp
 </pre>
 
-- As root, restart networking: 
+- As root, start networking: 
 
-<pre>service networking restart</pre>
+<pre>ifup eth0
+ifup eth1
+ifup eth2</pre>
 
 - You should now be able to SSH into the VM on the 10.10.10.x address you assigned
 
@@ -199,13 +201,13 @@ iface eth3 inet dhcp
 
 <pre>git clone https://github.com/BrianBrophy/OpenStack-Installation.git</pre>
 
-- Edit icehouse-install.ini and ensure configuration looks good.  Within the control section, be sure the network_address_management matches the IP of your Control Node's manegement interface.  Pay close attention to the network section.  Make sure the instance, external (floating IPs), and internet interfaces match your host.  Also be sure the provider/external OpenStack network CIDR aligns with the host-only network you assigned in VirtualBox because a special iptables rule will be created on the network node (and added to /etc/rc.local) to source NAT all traffic coming from this network (ie, from your compute/instance VMs) to the IP Address on your host's Internet interface (ie, the one connected to the VirtualBox NAT network).  This is needed to get compute/instance VM connectivity out to the Internet.  Your compute/instance VMs are not accessible from the Internet because the external network floating IP range is on a VirtualBox host-only network.
+- Edit juno-install.ini and ensure configuration looks good.  Within the control section, be sure the network_address_management matches the IP of your Control Node's manegement interface.  Pay close attention to the network section.  Make sure the instance, external (floating IPs), and internet interfaces match your host.  Also be sure the provider/external OpenStack network CIDR aligns with the host-only network you assigned in VirtualBox because a special iptables rule will be created on the network node (and added to /etc/rc.local) to source NAT all traffic coming from this network (ie, from your compute/instance VMs) to the IP Address on your host's Internet interface (ie, the one connected to the VirtualBox NAT network).  This is needed to get compute/instance VM connectivity out to the Internet.  Your compute/instance VMs are not accessible from the Internet because the external network floating IP range is on a VirtualBox host-only network.
 
-<pre>vi icehouse-install.ini</pre>
+<pre>vi juno-install.ini</pre>
 
 - As root, run the installer:
 
-<pre>python icehouse-setup-network-node.py</pre>
+<pre>python juno-setup-network-node.py</pre>
 
 
 ## Compute Node
@@ -216,8 +218,8 @@ The OpenStack Compute node will run NTP, Nova, and Neutron.
 - Type: Linux
 - Version: Ubuntu (64-bit)
 - Memory: 4096 MB (allocating more will yield more resources for OpenStack Compute instances)
-- Processors: 1 (allocating more will yield more resources for OpenStack Compute instances)
-- Video Memory: 16 MB
+- Processors: 1 (allocating more will yield more resources for OpenStack Compute instances - 4 for Heat LBaaS)
+- Video Memory: 12 MB
 - Monitor Count: 1
 - Storage: CD/DVD drive on the IDE Controller and a 16 GB disk on the SATA Controller
 - Audio: Can be disabled
@@ -227,7 +229,7 @@ The OpenStack Compute node will run NTP, Nova, and Neutron.
 
 
 ### OS Installation
-- Boot off the Ubuntu 12.04 Server ISO to begin installation:
+- Boot off the Ubuntu 14.04 Server ISO to begin installation:
 - Select the language and the default menu option of Install Ubuntu Server
 - Configure the keyboard layout
 - For the primary network interface, select the adapter assigned to the Intel chipset
@@ -271,9 +273,10 @@ auto eth2
 iface eth2 inet dhcp
 </pre>
 
-- As root, restart networking: 
+- As root, start networking: 
 
-<pre>service networking restart</pre>
+<pre>ifup eth0
+ifup eth1</pre>
 
 - You should now be able to SSH into the VM on the 10.10.10.x address you assigned
 
@@ -287,13 +290,13 @@ iface eth2 inet dhcp
 
 <pre>git clone https://github.com/BrianBrophy/OpenStack-Installation.git</pre>
 
-- Edit icehouse-install.ini and ensure configuration looks good.  Within the control section, be sure the network_address_management matches the IP of your Control Node's manegement interface.  Pay close attention to the compute section, ensuring the references to the network interfaces are correct.
+- Edit juno-install.ini and ensure configuration looks good.  Within the control section, be sure the network_address_management matches the IP of your Control Node's manegement interface.  Pay close attention to the compute section, ensuring the references to the network interfaces are correct.
 
-<pre>vi icehouse-install.ini</pre>
+<pre>vi juno-install.ini</pre>
 
 - As root, run the installer:
 
-<pre>python icehouse-setup-compute-node.py</pre>
+<pre>python juno-setup-compute-node.py</pre>
 
 
 # Using OpenStack
@@ -962,7 +965,7 @@ resources:
     type: OS::Neutron::HealthMonitor
     properties:
       type: HTTP
-      delay: 3
+      delay: 5
       max_retries: 5
       timeout: 5
       http_method: GET
