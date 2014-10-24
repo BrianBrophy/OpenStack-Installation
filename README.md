@@ -406,7 +406,7 @@ ifup eth1</pre>
 <pre>neutron net-list</pre>
 
 ## Creating Subnet on External Network
-- We configured our VirtualBox host-only network to access the VMs as 192.168.100.0/24.  This is also what was within the icehouse-install.ini file as the OpenStack external/provider network that, during the installation of the Network Node, we configured iptables to SNAT traffic from in order to get VM/instance out to Internet traffic working.
+- We configured our VirtualBox host-only network to access the VMs as 192.168.100.0/24.  This is also what was within the install.ini file as the OpenStack external/provider network that, during the installation of the Network Node, we configured iptables to SNAT traffic from in order to get VM/instance out to Internet traffic working.
 - We will take this subnet, and use it as an allocation pool for floating IPs on the external subnet.  Note how the gateway is the IP Address assigned to the Network Node's interface on the external network.
 
 <pre>neutron subnet-create ext-net --name ext-subnet --allocation-pool start=192.168.100.20,end=192.168.100.254 --disable-dhcp --gateway 192.168.100.2 192.168.100.0/24</pre>
