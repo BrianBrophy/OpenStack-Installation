@@ -1033,7 +1033,10 @@ outputs:
 
 - Now, we can launch the Heat stack.  Note, the stack will complete pretty quickly and Nova will report that the web servers are RUNNING, but this just means they are powered on.  It takes a little time for them to boot, complete cloud-init, and run the script to load Apache.  So, the load balancer will be created and monitoring ... and once Apache is loaded on the web servers, the load balancer will be online.
 
-<pre>heat stack-create -f heat-ubuntu-lbaas.yaml -P "image=Ubuntu 12.04 x86_64;flavor=m1.small;keyName=brian-key;networkID=1c46bbdd-bb6b-4edb-8bf8-97e2c11f6c23;subnetID=b95589c2-6ade-4e4f-89e4-1d130e15dbc2;floatingNetworkID=3f64f785-619f-4fed-bad4-b81074782a0d" lbaas-ubuntu-stack</pre>
+<pre>demoNet=$(neutron net-list | grep demo-net | awk '{print $2;}')
+extNet=$(neutron net-list | grep ext-net | awk '{print $2;}')
+demoSubnet=$(neutron subnet-list | grep demo-subnet | awk '{print $2;}')
+heat stack-create -f heat-ubuntu-lbaas.yaml -P "image=Ubuntu 12.04 x86_64;flavor=m1.small;keyName=brian-key;networkID=$demoNet;subnetID=$demoSubnet;floatingNetworkID=$extNet" lbaas-ubuntu-stack</pre>
 
 - When the stack completes, use the "heat stack-show" command to see the details, including within the "outputs" section the resulting floating IP that was assigned to the load balancer VIP.
 
